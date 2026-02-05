@@ -13,22 +13,28 @@ const DEFAULT_LNG = 126.978;
 export async function geocodeAddress(
   address: string
 ): Promise<{ lat: number; lng: number; ok: boolean }> {
-  const key =
-    process.env.KAKAO_REST_API_KEY ?? process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
+  const key = process.env.KAKAO_REST_API_KEY;
   if (!key || !address.trim()) {
+    console.error("[geocodeAddress] KAKAO_REST_API_KEY 없음 또는 주소 비어있음");
     return { lat: DEFAULT_LAT, lng: DEFAULT_LNG, ok: false };
   }
 
   try {
-    const res = await fetch(
-      `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`,
-      { headers: { Authorization: `KakaoAK ${key}` } }
-    );
+    const url = `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `KakaoAK ${key}` },
+    });
     const data = await res.json();
-    if (data.error?.message) {
-      console.error("geocodeAddress API error:", data.error);
+
+    if (data.error) {
+      console.error("[geocodeAddress] Kakao API 에러:", {
+        code: data.error.code,
+        message: data.error.message,
+        status: res.status,
+      });
       return { lat: DEFAULT_LAT, lng: DEFAULT_LNG, ok: false };
     }
+
     const doc = data.documents?.[0];
     if (doc?.y && doc?.x) {
       return {
@@ -37,8 +43,15 @@ export async function geocodeAddress(
         ok: true,
       };
     }
+
+    console.error("[geocodeAddress] 검색 결과 없음:", {
+      query: address,
+      meta: data.meta,
+      documentsCount: data.documents?.length ?? 0,
+      raw: JSON.stringify(data).slice(0, 500),
+    });
   } catch (e) {
-    console.error("geocodeAddress:", e);
+    console.error("[geocodeAddress] 예외:", e);
   }
   return { lat: DEFAULT_LAT, lng: DEFAULT_LNG, ok: false };
 }
@@ -55,9 +68,50 @@ export interface RegisterShopInput {
   businessNumber: string;
   businessHours?: string;
   closedDays?: string;
+  /** 대표 이미지 URL (선택, Supabase Storage 업로드 후) */
+  representativeImageUrl?: string | null;
   /** 주소 검색으로 얻은 좌표 (있으면 사용, 없으면 서버에서 재시도) */
   lat?: number;
   lng?: number;
+}
+
+/** 대표 이미지 업로드 → public URL 반환 */
+export async function uploadShopImage(
+  formData: FormData
+): Promise<{ url: string } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  const file = formData.get("file") as File | null;
+  if (!file || !file.size) {
+    return { error: "이미지 파일을 선택해주세요." };
+  }
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const fileName = `${user.id}/${Date.now()}.${ext}`;
+
+  const { data, error } = await supabase.storage
+    .from("shop-images")
+    .upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("uploadShopImage:", error);
+    return { error: error.message };
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("shop-images").getPublicUrl(data.path);
+  return { url: publicUrl };
 }
 
 /** 입점 신청: shops + shop_owners에 저장 */
@@ -100,7 +154,7 @@ export async function registerShop(
       is_open: true,
       business_hours: input.businessHours ?? "09:00 - 21:00",
       closed_days: input.closedDays || null,
-      representative_image_url: null,
+      representative_image_url: input.representativeImageUrl || null,
       promotional_text: null,
       last_updated_at: null,
       created_at: now,

@@ -10,10 +10,12 @@ import Script from "next/script";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Info, Search } from "lucide-react";
+import Image from "next/image";
+import { Info, Search, ImagePlus, ImageOff, Store } from "lucide-react";
 import {
   geocodeAddress,
   registerShop,
+  uploadShopImage,
   type ShopType,
 } from "@/app/actions/owner";
 
@@ -52,10 +54,6 @@ interface DaumPostcodeData {
 
 export function RegisterForm() {
   const router = useRouter();
-  // Maps 키 없으면 Geocoder 불가
-  const [mapsLoaded, setMapsLoaded] = useState(
-    !process.env.NEXT_PUBLIC_KAKAO_MAP_KEY,
-  );
 
   const {
     register,
@@ -83,64 +81,11 @@ export function RegisterForm() {
     lng: number;
   } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-
-  /** 1) 클라이언트 Geocoder (Maps SDK) */
-  const geocodeClient = (
-    address: string,
-  ): Promise<{ lat: number; lng: number } | null> =>
-    new Promise((resolve) => {
-      if (
-        typeof window === "undefined" ||
-        !window.kakao?.maps?.services?.Geocoder
-      ) {
-        resolve(null);
-        return;
-      }
-      const geocoder = new window.kakao.maps.services.Geocoder();
-      geocoder.addressSearch(
-        address,
-        (result: { y: string; x: string }[], status: string) => {
-          const ok =
-            status === "OK" ||
-            status === window.kakao?.maps?.services?.Status?.OK;
-          if (ok && result?.[0]) {
-            resolve({
-              lat: parseFloat(result[0].y),
-              lng: parseFloat(result[0].x),
-            });
-          } else {
-            resolve(null);
-          }
-        },
-      );
-    });
-
-  /** 2) 클라이언트 REST API (로컬 API 키 필요, 브라우저에서 직접 호출) */
-  const geocodeViaRestApi = async (
-    address: string,
-  ): Promise<{ lat: number; lng: number } | null> => {
-    const key =
-      process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY ??
-      process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
-    if (!key) return null;
-    try {
-      const res = await fetch(
-        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`,
-        { headers: { Authorization: `KakaoAK ${key}` } },
-      );
-      const data = await res.json();
-      const doc = data.documents?.[0];
-      if (doc?.y && doc?.x) {
-        return {
-          lat: parseFloat(doc.y),
-          lng: parseFloat(doc.x),
-        };
-      }
-    } catch {
-      /* ignore */
-    }
-    return null;
-  };
+  const [representativeImageFile, setRepresentativeImageFile] =
+    useState<File | null>(null);
+  const [representativeImagePreview, setRepresentativeImagePreview] = useState<
+    string | null
+  >(null);
 
   const handleSearchAddress = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Daum/Kakao Postcode API
@@ -166,54 +111,28 @@ export function RegisterForm() {
         const fullAddr = addr + extraAddr;
         setValue("address", fullAddr, { shouldValidate: true });
 
-        // 클라이언트 Geocoder 사용 (지도와 동일한 JavaScript 키)
-        if (mapsLoaded && window.kakao?.maps?.services?.Geocoder) {
-          const geocoder = new window.kakao.maps.services.Geocoder();
-          geocoder.addressSearch(fullAddr, (result, status) => {
-            if (
-              (status === "OK" ||
-                status === window.kakao?.maps?.services?.Status?.OK) &&
-              result[0]
-            ) {
-              setGeocodedLatLng({
-                lat: parseFloat(result[0].y),
-                lng: parseFloat(result[0].x),
-              });
-            } else {
-              setGeocodedLatLng(null);
-            }
-          });
-        } else {
-          setGeocodedLatLng(null);
-        }
+        geocodeAddress(fullAddr).then((res) => {
+          if (res.ok) setGeocodedLatLng({ lat: res.lat, lng: res.lng });
+          else setGeocodedLatLng(null);
+        });
       },
     }).open();
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
     setFormError(null);
-    const fullAddress = [data.address, data.detailAddress]
-      .filter(Boolean)
-      .join(" ");
+    // 지오코딩은 검색한 기본 주소만 사용 (상세주소 제외)
+    const baseAddress = data.address?.trim() ?? "";
     let lat = geocodedLatLng?.lat;
     let lng = geocodedLatLng?.lng;
 
-    // 주소가 있는데 좌표가 없으면 Geocoding 시도 (3단계 fallback)
-    if (fullAddress && (lat == null || lng == null)) {
-      let coords = await geocodeClient(fullAddress);
-      if (!coords) {
-        const serverGeo = await geocodeAddress(fullAddress);
-        if (serverGeo.ok) {
-          coords = { lat: serverGeo.lat, lng: serverGeo.lng };
-        }
-      }
-      if (!coords) {
-        coords = await geocodeViaRestApi(fullAddress);
-      }
-      if (coords) {
-        lat = coords.lat;
-        lng = coords.lng;
-        setGeocodedLatLng(coords);
+    // 주소가 있는데 좌표가 없으면 서버 API로 Geocoding
+    if (baseAddress && (lat == null || lng == null)) {
+      const res = await geocodeAddress(baseAddress);
+      if (res.ok) {
+        lat = res.lat;
+        lng = res.lng;
+        setGeocodedLatLng({ lat: res.lat, lng: res.lng });
       } else {
         setFormError(
           "주소를 좌표로 변환할 수 없습니다. Kakao Developers에서 로컬 API를 활성화하고 KAKAO_REST_API_KEY를 .env에 설정해주세요.",
@@ -222,12 +141,25 @@ export function RegisterForm() {
       }
     }
 
+    let representativeImageUrl: string | null = null;
+    if (representativeImageFile) {
+      const formData = new FormData();
+      formData.append("file", representativeImageFile);
+      const uploadResult = await uploadShopImage(formData);
+      if ("error" in uploadResult) {
+        setFormError(uploadResult.error);
+        return;
+      }
+      representativeImageUrl = uploadResult.url;
+    }
+
     const result = await registerShop({
       ...data,
       phone: data.phone || undefined,
       detailAddress: data.detailAddress || undefined,
       businessHours: data.businessHours || undefined,
       closedDays: data.closedDays || undefined,
+      representativeImageUrl,
       lat,
       lng,
     });
@@ -251,25 +183,9 @@ export function RegisterForm() {
         src="https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
         strategy="afterInteractive"
       />
-      {process.env.NEXT_PUBLIC_KAKAO_MAP_KEY && (
-        <Script
-          src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false`}
-          strategy="afterInteractive"
-          onLoad={() => {
-            if (typeof window !== "undefined" && window.kakao?.maps) {
-              window.kakao.maps.load(() => setMapsLoaded(true));
-            } else {
-              setMapsLoaded(true);
-            }
-          }}
-        />
-      )}
       <div className="container max-w-md mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">입점 신청</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            사업자등록증을 통한 간편 인증으로 빠르게 입점하세요.
-          </p>
         </div>
 
         <div className="space-y-4 mb-6">
@@ -280,13 +196,6 @@ export function RegisterForm() {
               <p className="text-blue-700 mt-1">
                 가챠샵, 쿠지샵, 복합 매장이 주요 대상입니다.
               </p>
-              <button
-                type="button"
-                className="mt-2 text-blue-600 hover:underline font-medium"
-                onClick={() => alert("자세한 입점 기준 준비 중입니다.")}
-              >
-                자세한 입점 기준 보기 →
-              </button>
             </div>
           </div>
         </div>
@@ -338,6 +247,88 @@ export function RegisterForm() {
             <p className="text-xs text-muted-foreground">
               지도 필터에서 검색될 매장 유형입니다
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>대표 이미지 (선택)</Label>
+            <p className="text-xs text-muted-foreground">
+              필수는 아닙니다. 나중에 대시보드에서도 추가·수정할 수 있습니다.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById("representative-image-input")?.click()
+                }
+                className="relative aspect-square w-20 shrink-0 rounded-lg overflow-hidden bg-muted border border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors group"
+              >
+                {representativeImagePreview ? (
+                  <Image
+                    src={representativeImagePreview}
+                    alt="대표 이미지 미리보기"
+                    fill
+                    className="object-cover group-hover:opacity-80 transition-opacity"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-muted-foreground">
+                    <Store className="size-8" />
+                    <span className="text-xs">이미지 추가</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <ImagePlus className="size-6 text-white" />
+                </div>
+              </button>
+              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                {representativeImageFile ? (
+                  <>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {representativeImageFile.name}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-fit h-7 text-xs"
+                      onClick={() => {
+                        if (representativeImagePreview?.startsWith("blob:")) {
+                          URL.revokeObjectURL(representativeImagePreview);
+                        }
+                        setRepresentativeImageFile(null);
+                        setRepresentativeImagePreview(null);
+                      }}
+                    >
+                      <ImageOff className="size-3 mr-1" />
+                      이미지 제거
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    JPG, PNG, WebP, GIF (최대 5MB)
+                  </p>
+                )}
+              </div>
+            </div>
+            <input
+              id="representative-image-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  if (file.size > 5 * 1024 * 1024) {
+                    setFormError("이미지 크기는 5MB 이하여야 합니다.");
+                    return;
+                  }
+                  setRepresentativeImageFile(file);
+                  setRepresentativeImagePreview(URL.createObjectURL(file));
+                  setFormError(null);
+                }
+                e.target.value = "";
+              }}
+            />
           </div>
 
           <div className="space-y-2">
