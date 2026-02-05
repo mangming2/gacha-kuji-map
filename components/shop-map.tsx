@@ -34,18 +34,15 @@ export function ShopMap({
   const markersRef = useRef<kakao.maps.CustomOverlay[]>([]);
   const [mapReady, setMapReady] = useState(false);
 
-  const createMarkerElement = useCallback(
-    (shop: Shop) => {
-      const style = MARKER_STYLES[shop.type];
-      const div = document.createElement("div");
-      div.className = `cursor-pointer w-10 h-10 rounded-full ${style.bg} ${style.border} border-2 flex items-center justify-center text-lg shadow-lg hover:scale-110 transition-transform select-none`;
-      div.innerHTML = style.emoji;
-      div.dataset.shopId = String(shop.id);
-      div.title = shop.name;
-      return div;
-    },
-    []
-  );
+  const createMarkerElement = useCallback((shop: Shop) => {
+    const style = MARKER_STYLES[shop.type];
+    const div = document.createElement("div");
+    div.className = `cursor-pointer w-10 h-10 rounded-full ${style.bg} ${style.border} border-2 flex items-center justify-center text-lg shadow-lg hover:scale-110 transition-transform select-none`;
+    div.innerHTML = style.emoji;
+    div.dataset.shopId = String(shop.id);
+    div.title = shop.name;
+    return div;
+  }, []);
 
   useEffect(() => {
     const key = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
@@ -57,7 +54,11 @@ export function ShopMap({
     if (!mapRef.current) return;
 
     const loadMap = () => {
-      if (typeof window === "undefined" || !window.kakao?.maps || !mapRef.current)
+      if (
+        typeof window === "undefined" ||
+        !window.kakao?.maps ||
+        !mapRef.current
+      )
         return;
 
       const center = new window.kakao.maps.LatLng(37.5665, 126.978);
@@ -142,7 +143,7 @@ export function ShopMap({
       () => {
         alert("위치 정보를 가져올 수 없습니다. 위치 권한을 확인해주세요.");
       },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true },
     );
   }, [moveToMyLocationTrigger, mapReady]);
 
@@ -152,17 +153,7 @@ export function ShopMap({
       {!process.env.NEXT_PUBLIC_KAKAO_MAP_KEY && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/90">
           <p className="text-muted-foreground text-center px-4">
-            .env.local에 NEXT_PUBLIC_KAKAO_MAP_KEY를 설정해주세요.
-            <br />
-            <a
-              href="https://developers.kakao.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline text-primary"
-            >
-              카카오 개발자 콘솔
-            </a>
-            에서 발급받을 수 있습니다.
+            env 변수가 설정되지 않았습니다.
           </p>
         </div>
       )}

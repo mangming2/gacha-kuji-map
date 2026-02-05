@@ -65,9 +65,6 @@ export default function HomePage() {
       <header className="absolute top-0 left-0 right-0 z-10 p-4 pt-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-3 flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              가챠·쿠지 맵
-            </h1>
             <div className="inline-flex p-2 rounded-2xl bg-background/95 backdrop-blur-sm shadow-lg w-fit">
               <FilterTabs filter={filter} onChange={setFilter} />
             </div>
@@ -79,7 +76,7 @@ export default function HomePage() {
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
         <Button
           onClick={handleMoveToMyLocation}
-          className="rounded-full bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background px-6 py-6 font-medium"
+          className="rounded-full bg-foreground text-background shadow-lg hover:bg-foreground/90 px-6 py-6 font-medium"
         >
           <MapPin className="size-5 mr-2" />
           내위치 기준 탐색
