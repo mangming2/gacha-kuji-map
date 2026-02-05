@@ -11,6 +11,7 @@ export interface DbShop {
   stock_status: string | null;
   is_open: boolean;
   business_hours: string;
+  closed_days?: string | null;
   representative_image_url: string | null;
   promotional_text: string | null;
   last_updated_at: string | null;
@@ -35,5 +36,6 @@ export interface DbKujiStatus {
   status: string;
   stock: number | null;
   grade_status: { grade: string; count: number }[];
+  image_url?: string | null;
   created_at: string;
 }

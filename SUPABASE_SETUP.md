@@ -26,7 +26,8 @@ NEXT_PUBLIC_KAKAO_MAP_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # 지도 + 주소→
 Supabase 대시보드 → **SQL Editor**에서 아래 순서로 실행:
 
 1. `supabase/migrations/0001_initial_schema.sql` 전체 복사 후 실행
-2. `supabase/seed.sql` 전체 복사 후 실행 (시드 데이터)
+2. `supabase/migrations/0003_add_closed_days_and_kuji_image.sql` 실행 (휴무요일, 쿠지 대표 이미지 컬럼 추가)
+3. `supabase/seed.sql` 전체 복사 후 실행 (더미 데이터: 매장/가챠/쿠지, Unsplash 이미지 URL 포함)
 
 ## 4. 동작 방식
 

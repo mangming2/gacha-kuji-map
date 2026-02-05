@@ -19,6 +19,7 @@ export interface KujiStatus {
   status: string; // 예: "A상 남음", "라스트원상 임박"
   stock?: number; // 전체 재고 수량
   gradeStatus?: KujiGrade[]; // 등급별 남은 개수
+  imageUrl?: string; // 대표 이미지
 }
 
 export interface Shop {
@@ -30,6 +31,7 @@ export interface Shop {
   stockStatus?: string;
   isOpen: boolean;
   businessHours: string;
+  closedDays?: string; // 휴무요일 (예: 매주 일요일)
   representativeImageUrl?: string; // 대표 사진
   promotionalText?: string; // 홍보 문구 (100자 이내)
   lastUpdatedAt?: string; // 마지막 재고 업데이트

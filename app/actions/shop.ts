@@ -5,18 +5,30 @@ import type { GachaMachine, KujiStatus } from "@/types/shop";
 
 export async function updateShopPromo(
   shopId: number,
-  data: { promotionalText?: string; representativeImageUrl?: string }
+  data: {
+    promotionalText?: string;
+    representativeImageUrl?: string | null;
+    businessHours?: string;
+    closedDays?: string;
+  }
 ) {
   const supabase = await createClient();
 
+  const updateData: Record<string, unknown> = {
+    last_updated_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  if (data.promotionalText !== undefined)
+    updateData.promotional_text = data.promotionalText;
+  if (data.representativeImageUrl !== undefined)
+    updateData.representative_image_url = data.representativeImageUrl ?? null;
+  if (data.businessHours !== undefined)
+    updateData.business_hours = data.businessHours;
+  if (data.closedDays !== undefined) updateData.closed_days = data.closedDays;
+
   const { error } = await supabase
     .from("shops")
-    .update({
-      promotional_text: data.promotionalText,
-      representative_image_url: data.representativeImageUrl,
-      last_updated_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("id", shopId);
 
   if (error) {
@@ -99,6 +111,7 @@ export async function upsertKujiStatuses(
     status: s.status ?? "신규",
     stock: s.stock ?? null,
     grade_status: s.gradeStatus ?? [],
+    image_url: s.imageUrl ?? null,
   }));
 
   const { error: insertError } = await supabase

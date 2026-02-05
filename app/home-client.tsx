@@ -13,7 +13,7 @@ function filterShops(shops: Shop[], filter: FilterState): Shop[] {
   const { gacha, kuji } = filter;
 
   if (!gacha && !kuji) {
-    return shops;
+    return [];
   }
 
   return shops.filter((shop) => {
@@ -36,8 +36,8 @@ interface HomeClientProps {
 
 export function HomeClient({ initialShops }: HomeClientProps) {
   const [filter, setFilter] = useState<FilterState>({
-    gacha: false,
-    kuji: false,
+    gacha: true,
+    kuji: true,
   });
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);

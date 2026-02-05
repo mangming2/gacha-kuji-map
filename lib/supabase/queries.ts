@@ -16,6 +16,7 @@ function mapShop(
     stockStatus: shop.stock_status ?? undefined,
     isOpen: shop.is_open,
     businessHours: shop.business_hours,
+    closedDays: shop.closed_days ?? undefined,
     representativeImageUrl: shop.representative_image_url ?? undefined,
     promotionalText: shop.promotional_text ?? undefined,
     lastUpdatedAt: shop.last_updated_at ?? undefined,
@@ -32,6 +33,7 @@ function mapShop(
       status: k.status,
       stock: k.stock ?? undefined,
       gradeStatus: Array.isArray(k.grade_status) ? k.grade_status : [],
+      imageUrl: k.image_url ?? undefined,
     })),
   };
 }

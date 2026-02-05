@@ -53,6 +53,8 @@ export interface RegisterShopInput {
   address: string;
   detailAddress?: string;
   businessNumber: string;
+  businessHours?: string;
+  closedDays?: string;
   /** 주소 검색으로 얻은 좌표 (있으면 사용, 없으면 서버에서 재시도) */
   lat?: number;
   lng?: number;
@@ -96,7 +98,8 @@ export async function registerShop(
       address: fullAddress || null,
       stock_status: null,
       is_open: true,
-      business_hours: "09:00 - 21:00",
+      business_hours: input.businessHours ?? "09:00 - 21:00",
+      closed_days: input.closedDays || null,
       representative_image_url: null,
       promotional_text: null,
       last_updated_at: null,

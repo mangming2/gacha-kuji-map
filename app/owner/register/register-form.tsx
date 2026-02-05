@@ -34,6 +34,8 @@ const registerSchema = z.object({
   address: z.string().min(1, "주소를 입력해주세요"),
   detailAddress: z.string().optional(),
   businessNumber: z.string().min(1, "사업자등록번호를 입력해주세요"),
+  businessHours: z.string().optional(),
+  closedDays: z.string().optional(),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -71,6 +73,8 @@ export function RegisterForm() {
       address: "",
       detailAddress: "",
       businessNumber: "000-00-00000",
+      businessHours: "10:00 - 21:00",
+      closedDays: "",
     },
   });
 
@@ -222,6 +226,8 @@ export function RegisterForm() {
       ...data,
       phone: data.phone || undefined,
       detailAddress: data.detailAddress || undefined,
+      businessHours: data.businessHours || undefined,
+      closedDays: data.closedDays || undefined,
       lat,
       lng,
     });
@@ -358,6 +364,26 @@ export function RegisterForm() {
               placeholder="010-0000-0000"
               className="bg-background"
               {...register("phone")}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="businessHours">영업시간</Label>
+            <Input
+              id="businessHours"
+              placeholder="예: 10:00 - 21:00"
+              className="bg-background"
+              {...register("businessHours")}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="closedDays">휴무요일 (선택)</Label>
+            <Input
+              id="closedDays"
+              placeholder="예: 매주 일요일"
+              className="bg-background"
+              {...register("closedDays")}
             />
           </div>
 
