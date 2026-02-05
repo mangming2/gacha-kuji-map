@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Shop } from "@/types/shop";
-import { Clock } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 
 interface ShopDetailSheetProps {
   shop: Shop | null;
@@ -61,6 +61,12 @@ export function ShopDetailSheet({ shop, open, onOpenChange }: ShopDetailSheetPro
             <Clock className="size-4 shrink-0" />
             <span>{shop.businessHours}</span>
           </div>
+          {shop.address && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+              <MapPin className="size-4 shrink-0" />
+              <span>{shop.address}</span>
+            </div>
+          )}
         </SheetHeader>
 
         <Tabs defaultValue={shop.type === "KUJI" ? "kuji" : "gacha"} className="flex-1 overflow-hidden flex flex-col">
@@ -102,18 +108,34 @@ export function ShopDetailSheet({ shop, open, onOpenChange }: ShopDetailSheetPro
                   {shop.kujiStatuses.map((status) => (
                     <li
                       key={status.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                      className="p-3 rounded-lg bg-muted/50 space-y-1.5"
                     >
-                      <span className="font-medium">{status.name}</span>
-                      <Badge
-                        variant={
-                          status.status.includes("임박")
-                            ? "destructive"
-                            : "secondary"
-                        }
-                      >
-                        {status.status}
-                      </Badge>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{status.name}</span>
+                        <Badge
+                          variant={
+                            status.status.includes("임박")
+                              ? "destructive"
+                              : "secondary"
+                          }
+                        >
+                          {status.status}
+                        </Badge>
+                      </div>
+                      {status.gradeStatus && status.gradeStatus.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {status.gradeStatus
+                            .filter((g) => g.count > 0)
+                            .map((g) => (
+                              <span
+                                key={g.grade}
+                                className="text-xs px-2 py-0.5 rounded bg-violet-100 text-violet-800"
+                              >
+                                {g.grade} {g.count}개
+                              </span>
+                            ))}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

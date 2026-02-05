@@ -55,10 +55,11 @@ declare namespace kakao.maps {
   }
 
   namespace services {
+    const Status: { OK: string; ERROR: string; ZERO_RESULT: string };
     class Geocoder {
       addressSearch(
         address: string,
-        callback: (result: any[], status: string) => void
+        callback: (result: { x: string; y: string }[], status: string) => void
       ): void;
     }
   }
