@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { QueryProvider } from "@/components/query-provider";
 
@@ -15,13 +16,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://gacha-kuji-map.vercel.app"
+    process.env.NEXT_PUBLIC_SITE_URL || "https://gacha-kuji-map.vercel.app",
   ),
   title: "가챠·쿠지 맵",
-  description: "가챠(캡슐 토이)와 이치방쿠지 매장 위치를 한눈에! 주변 매장을 찾아보세요.",
+  description:
+    "가챠(캡슐 토이)와 이치방쿠지 매장 위치를 한눈에! 주변 매장을 찾아보세요.",
   openGraph: {
     title: "가챠·쿠지 맵",
-    description: "가챠(캡슐 토이)와 이치방쿠지 매장 위치를 한눈에! 주변 매장을 찾아보세요.",
+    description:
+      "가챠(캡슐 토이)와 이치방쿠지 매장 위치를 한눈에! 주변 매장을 찾아보세요.",
     url: "/",
     siteName: "가챠·쿠지 맵",
     locale: "ko_KR",
@@ -38,7 +41,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "가챠·쿠지 맵",
-    description: "가챠(캡슐 토이)와 이치방쿠지 매장 위치를 한눈에! 주변 매장을 찾아보세요.",
+    description:
+      "가챠(캡슐 토이)와 이치방쿠지 매장 위치를 한눈에! 주변 매장을 찾아보세요.",
     images: ["/main-image.png"],
   },
 };
@@ -54,6 +58,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <QueryProvider>{children}</QueryProvider>
+        <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
   );

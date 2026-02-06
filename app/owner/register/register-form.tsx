@@ -21,6 +21,7 @@ import {
   claimShop,
   type ShopType,
 } from "@/app/actions/owner";
+import { toast } from "sonner";
 import type { Shop } from "@/types/shop";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -142,9 +143,14 @@ export function RegisterForm() {
     const result = await claimShop(shopId);
     setClaimingShopId(null);
     if (!result.success) {
-      setFormError(result.error ?? "클레임 신청에 실패했습니다.");
+      const msg = result.error ?? "클레임 신청에 실패했습니다.";
+      toast.error(msg);
+      setFormError(msg);
       return;
     }
+    toast.success(
+      "클레임 신청이 접수되었습니다. 운영자 승인 후 관리할 수 있습니다.",
+    );
     await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
     await queryClient.invalidateQueries({ queryKey: queryKeys.authState });
     router.push("/owner/shops");
@@ -165,9 +171,10 @@ export function RegisterForm() {
         lng = res.lng;
         setGeocodedLatLng({ lat: res.lat, lng: res.lng });
       } else {
-        setFormError(
-          "주소를 좌표로 변환할 수 없습니다. Kakao Developers에서 로컬 API를 활성화하고 KAKAO_REST_API_KEY를 .env에 설정해주세요.",
-        );
+        const msg =
+          "주소를 좌표로 변환할 수 없습니다. Kakao Developers에서 로컬 API를 활성화하고 KAKAO_REST_API_KEY를 .env에 설정해주세요.";
+        toast.error(msg);
+        setFormError(msg);
         return;
       }
     }
@@ -178,6 +185,7 @@ export function RegisterForm() {
       formData.append("file", representativeImageFile);
       const uploadResult = await uploadShopImage(formData);
       if ("error" in uploadResult) {
+        toast.error(uploadResult.error);
         setFormError(uploadResult.error);
         return;
       }
@@ -196,9 +204,16 @@ export function RegisterForm() {
     });
 
     if (!result.success) {
-      setFormError(result.error ?? "입점 신청에 실패했습니다.");
+      const msg = result.error ?? "입점 신청에 실패했습니다.";
+      toast.error(msg);
+      setFormError(msg);
       return;
     }
+    toast.success(
+      "pending" in result && result.pending
+        ? "추가 요청이 접수되었습니다. 운영자 승인 후 지도에 등록됩니다."
+        : "정상적으로 등록되었습니다.",
+    );
     await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
     await queryClient.invalidateQueries({ queryKey: queryKeys.authState });
     if ("pending" in result && result.pending) {
@@ -222,7 +237,7 @@ export function RegisterForm() {
       />
       <div className="container max-w-md mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">입점 신청</h1>
+          <h1 className="text-2xl font-bold text-foreground">입점 신청 요청</h1>
         </div>
 
         <div className="space-y-4 mb-6">
@@ -232,6 +247,9 @@ export function RegisterForm() {
               <p className="font-semibold text-blue-800">입점 가능 업종 확인</p>
               <p className="text-blue-700 mt-1">
                 가챠샵, 쿠지샵, 복합 매장이 주요 대상입니다.
+              </p>
+              <p className="text-blue-700 mt-2 font-medium">
+                운영자 승인 후 지도에 등록됩니다.
               </p>
             </div>
           </div>
@@ -243,7 +261,8 @@ export function RegisterForm() {
               이 근처에 등록된 매장이 있어요
             </p>
             <p className="text-sm text-amber-700 mb-3">
-              내 매장이면 클레임을 신청해주세요. 운영자 승인 후 관리할 수 있습니다.
+              내 매장이면 클레임을 신청해주세요. 운영자 승인 후 관리할 수
+              있습니다.
             </p>
             <ul className="space-y-2 mb-4">
               {nearbyShops.map((shop) => (
@@ -264,7 +283,9 @@ export function RegisterForm() {
                     onClick={() => handleClaimShop(shop.id)}
                     disabled={claimingShopId !== null}
                   >
-                    {claimingShopId === shop.id ? "신청 중..." : "이 매장이에요"}
+                    {claimingShopId === shop.id
+                      ? "신청 중..."
+                      : "이 매장이에요"}
                   </Button>
                 </li>
               ))}
@@ -521,7 +542,7 @@ export function RegisterForm() {
             disabled={isSubmitting}
             className="w-full h-12 bg-amber-700 hover:bg-amber-800 text-white mt-6"
           >
-            {isSubmitting ? "등록 중..." : "사업자등록증 제출하기"}
+            {isSubmitting ? "요청 중..." : "추가 요청하기"}
           </Button>
         </form>
 

@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { HelpCircle, Heart } from "lucide-react";
+import { HelpCircle, Heart, Loader2 } from "lucide-react";
 
 export default function OwnerLoginPage() {
+  const [loading, setLoading] = useState(false);
+
   const handleKakaoLogin = async () => {
+    setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",
@@ -18,6 +22,7 @@ export default function OwnerLoginPage() {
       },
     });
     if (error) {
+      setLoading(false);
       alert(`로그인 실패: ${error.message}`);
       return;
     }
@@ -62,11 +67,21 @@ export default function OwnerLoginPage() {
             <Button
               className="w-full h-12 bg-[#FEE500] text-[#191919] hover:bg-[#FEE500]/90 justify-start gap-3"
               onClick={handleKakaoLogin}
+              disabled={loading}
             >
-              <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z" />
-              </svg>
-              카카오로 시작하기
+              {loading ? (
+                <>
+                  <Loader2 className="size-5 animate-spin" />
+                  로그인 중...
+                </>
+              ) : (
+                <>
+                  <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z" />
+                  </svg>
+                  카카오로 시작하기
+                </>
+              )}
             </Button>
 
             {/* <Button
