@@ -7,6 +7,9 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/owner/shops";
 
+  // NEXT_PUBLIC_SITE_URL 우선 사용 (배포 시 localhost 리다이렉트 방지)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || origin;
+
   if (code) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -25,18 +28,9 @@ export async function GET(request: Request) {
         console.error("createOwnerIfNotExists:", e);
       }
 
-      const forwardedHost = request.headers.get("x-forwarded-host");
-      const isLocalEnv = process.env.NODE_ENV === "development";
-
-      if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-      if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
-      }
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(`${siteUrl}${next}`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/owner/login?error=auth`);
+  return NextResponse.redirect(`${siteUrl}/owner/login?error=auth`);
 }

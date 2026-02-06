@@ -12,7 +12,7 @@ export default function OwnerLoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`,
         // account_email은 비즈앱에서만 지원 - 일반 앱은 profile만 요청
         scopes: "profile_nickname profile_image",
       },

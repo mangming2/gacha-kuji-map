@@ -14,12 +14,14 @@
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 NEXT_PUBLIC_KAKAO_MAP_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # 지도 + 주소→위경도 변환용
+NEXT_PUBLIC_SITE_URL=http://localhost:3000  # 로컬: localhost, 배포: https://gacha-kuji-map.vercel.app
 ```
 
 - **URL**: Supabase 대시보드 → Settings → API → Project URL
 - **Anon Key**: Settings → API → Project API keys → anon public
 - **NEXT_PUBLIC_KAKAO_MAP_KEY**: [Kakao Developers](https://developers.kakao.com) → 앱 키 → **JavaScript 키**. **제품 설정** → **카카오맵** 활성화.
 - **KAKAO_REST_API_KEY** (서버용) / **NEXT_PUBLIC_KAKAO_REST_API_KEY** (클라이언트 fallback): 앱 키 → **REST API 키**. **제품 설정** → **로컬** 활성화. (주소→위경도 변환에 필요, 둘 중 하나 이상 설정)
+- **NEXT_PUBLIC_SITE_URL**: OAuth 리다이렉트용. 로컬: `http://localhost:3000`, Vercel 배포: `https://gacha-kuji-map.vercel.app` (배포 시 localhost로 리다이렉트되는 것 방지)
 
 ## 3. 데이터베이스 스키마 적용
 
