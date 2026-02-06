@@ -17,10 +17,11 @@ import {
   approveShopClaim,
   rejectShopClaim,
 } from "@/app/actions/admin";
-import { geocodeAddress } from "@/app/actions/owner";
+import { geocodeAddress, uploadShopImage } from "@/app/actions/owner";
 import { queryKeys } from "@/lib/query-keys";
 import type { RegisterShopInput } from "@/app/actions/owner";
-import { Search, Check, X, Shield } from "lucide-react";
+import { Search, Check, X, Shield, ImagePlus, ImageOff, Store } from "lucide-react";
+import Image from "next/image";
 
 interface DaumPostcodeData {
   userSelectedType: string;
@@ -56,6 +57,8 @@ export function AdminDashboard() {
     lat: null,
     lng: null,
   });
+  const [representativeImageFile, setRepresentativeImageFile] = useState<File | null>(null);
+  const [representativeImagePreview, setRepresentativeImagePreview] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
@@ -112,6 +115,18 @@ export function AdminDashboard() {
       lng = geo.lng;
     }
     setAdding(true);
+    let representativeImageUrl: string | null = null;
+    if (representativeImageFile) {
+      const formData = new FormData();
+      formData.append("file", representativeImageFile);
+      const uploadResult = await uploadShopImage(formData);
+      if ("error" in uploadResult) {
+        setAddError(uploadResult.error);
+        setAdding(false);
+        return;
+      }
+      representativeImageUrl = uploadResult.url;
+    }
     const input: RegisterShopInput = {
       shopName: addForm.shopName.trim(),
       shopType: addForm.shopType,
@@ -121,6 +136,7 @@ export function AdminDashboard() {
       businessNumber: "000-00-00000",
       businessHours: addForm.businessHours,
       closedDays: addForm.closedDays || undefined,
+      representativeImageUrl,
       lat,
       lng,
     };
@@ -140,6 +156,8 @@ export function AdminDashboard() {
       lat: null,
       lng: null,
     });
+    setRepresentativeImageFile(null);
+    setRepresentativeImagePreview(null);
     await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
     await loadPending();
   };
@@ -382,6 +400,84 @@ export function AdminDashboard() {
                         </button>
                       ))}
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>대표 이미지 (선택)</Label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          document.getElementById("admin-representative-image-input")?.click()
+                        }
+                        className="relative aspect-square w-20 shrink-0 rounded-lg overflow-hidden bg-muted border border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors group"
+                      >
+                        {representativeImagePreview ? (
+                          <Image
+                            src={representativeImagePreview}
+                            alt="대표 이미지 미리보기"
+                            fill
+                            className="object-cover group-hover:opacity-80 transition-opacity"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-muted-foreground">
+                            <Store className="size-8" />
+                            <span className="text-xs">이미지 추가</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <ImagePlus className="size-6 text-white" />
+                        </div>
+                      </button>
+                      <div className="flex-1 min-w-0 flex flex-col gap-1">
+                        {representativeImageFile ? (
+                          <>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {representativeImageFile.name}
+                            </p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-fit h-7 text-xs"
+                              onClick={() => {
+                                if (representativeImagePreview?.startsWith("blob:")) {
+                                  URL.revokeObjectURL(representativeImagePreview);
+                                }
+                                setRepresentativeImageFile(null);
+                                setRepresentativeImagePreview(null);
+                              }}
+                            >
+                              <ImageOff className="size-3 mr-1" />
+                              이미지 제거
+                            </Button>
+                          </>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            JPG, PNG, WebP, GIF (최대 5MB)
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <input
+                      id="admin-representative-image-input"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            setAddError("이미지 크기는 5MB 이하여야 합니다.");
+                            return;
+                          }
+                          setRepresentativeImageFile(file);
+                          setRepresentativeImagePreview(URL.createObjectURL(file));
+                          setAddError(null);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>주소 *</Label>

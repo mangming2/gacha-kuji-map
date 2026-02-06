@@ -29,6 +29,7 @@ import {
   upsertGachaMachines,
   upsertKujiStatuses,
 } from "@/app/actions/shop";
+import { uploadShopImage } from "@/app/actions/owner";
 import { queryKeys } from "@/lib/query-keys";
 import { Minus, Plus, Save, ImagePlus, ImageOff, PlusCircle, Store, Trash2 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/format-relative-time";
@@ -151,7 +152,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
   const handleSavePromo = async () => {
     if (!ownerShop) return;
     setSaving(true);
-    // blob URL은 저장하지 않음 (Supabase Storage 연동 시 업로드 후 URL 저장)
+    // http/https URL만 저장 (blob URL은 업로드 후 대체됨)
     const imageUrl =
       representativeImage === null
         ? null
@@ -207,42 +208,82 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
     }
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setRepresentativeImage(URL.createObjectURL(file));
-      alert(
-        "대표 사진이 변경되었습니다. (저장하려면 '저장' 버튼을 눌러주세요. Supabase Storage 연동 시 영구 저장됩니다.)",
-      );
+    if (!file) {
+      e.target.value = "";
+      return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("이미지 크기는 5MB 이하여야 합니다.");
+      e.target.value = "";
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    const uploadResult = await uploadShopImage(formData);
+    if ("error" in uploadResult) {
+      alert(`이미지 업로드 실패: ${uploadResult.error}`);
+      e.target.value = "";
+      return;
+    }
+    setRepresentativeImage(uploadResult.url);
     e.target.value = "";
   };
 
-  const handleGachaImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGachaImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && editingGachaImageId != null) {
-      const url = URL.createObjectURL(file);
-      setGachaMachines((prev) =>
-        prev.map((m) =>
-          m.id === editingGachaImageId ? { ...m, imageUrl: url } : m,
-        ),
-      );
-      setEditingGachaImageId(null);
+    if (!file || editingGachaImageId == null) {
+      e.target.value = "";
+      return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("이미지 크기는 5MB 이하여야 합니다.");
+      e.target.value = "";
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    const uploadResult = await uploadShopImage(formData);
+    if ("error" in uploadResult) {
+      alert(`이미지 업로드 실패: ${uploadResult.error}`);
+      e.target.value = "";
+      return;
+    }
+    setGachaMachines((prev) =>
+      prev.map((m) =>
+        m.id === editingGachaImageId ? { ...m, imageUrl: uploadResult.url } : m,
+      ),
+    );
+    setEditingGachaImageId(null);
     e.target.value = "";
   };
 
-  const handleKujiImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleKujiImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && editingKujiImageId != null) {
-      const url = URL.createObjectURL(file);
-      setKujiStatuses((prev) =>
-        prev.map((s) =>
-          s.id === editingKujiImageId ? { ...s, imageUrl: url } : s,
-        ),
-      );
-      setEditingKujiImageId(null);
+    if (!file || editingKujiImageId == null) {
+      e.target.value = "";
+      return;
     }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("이미지 크기는 5MB 이하여야 합니다.");
+      e.target.value = "";
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    const uploadResult = await uploadShopImage(formData);
+    if ("error" in uploadResult) {
+      alert(`이미지 업로드 실패: ${uploadResult.error}`);
+      e.target.value = "";
+      return;
+    }
+    setKujiStatuses((prev) =>
+      prev.map((s) =>
+        s.id === editingKujiImageId ? { ...s, imageUrl: uploadResult.url } : s,
+      ),
+    );
+    setEditingKujiImageId(null);
     e.target.value = "";
   };
 
@@ -805,9 +846,25 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) field.onChange(URL.createObjectURL(file));
+                        if (!file) {
+                          e.target.value = "";
+                          return;
+                        }
+                        if (file.size > 5 * 1024 * 1024) {
+                          alert("이미지 크기는 5MB 이하여야 합니다.");
+                          e.target.value = "";
+                          return;
+                        }
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const result = await uploadShopImage(formData);
+                        if ("error" in result) {
+                          alert(`이미지 업로드 실패: ${result.error}`);
+                        } else {
+                          field.onChange(result.url);
+                        }
                         e.target.value = "";
                       }}
                     />
@@ -887,9 +944,25 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) field.onChange(URL.createObjectURL(file));
+                        if (!file) {
+                          e.target.value = "";
+                          return;
+                        }
+                        if (file.size > 5 * 1024 * 1024) {
+                          alert("이미지 크기는 5MB 이하여야 합니다.");
+                          e.target.value = "";
+                          return;
+                        }
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const result = await uploadShopImage(formData);
+                        if ("error" in result) {
+                          alert(`이미지 업로드 실패: ${result.error}`);
+                        } else {
+                          field.onChange(result.url);
+                        }
                         e.target.value = "";
                       }}
                     />

@@ -23,6 +23,8 @@ NEXT_PUBLIC_KAKAO_MAP_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # 지도 + 주소→
 
 ## 3. 데이터베이스 스키마 적용
 
+> 📖 **상세 가이드**: `SUPABASE_SQL_EDITOR.md` 참고 (SQL Editor 사용법, 마이그레이션 순서, 문제 해결)
+
 Supabase 대시보드 → **SQL Editor**에서 아래 순서로 실행:
 
 1. `supabase/migrations/0001_initial_schema.sql` 전체 복사 후 실행
