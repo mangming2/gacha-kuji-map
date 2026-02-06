@@ -1,5 +1,3 @@
-import type { ShopType } from "./shop";
-
 export interface Owner {
   id: number;
   email: string;

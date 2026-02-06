@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Script from "next/script";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,12 +32,11 @@ interface DaumPostcodeData {
 }
 
 export function AdminDashboard() {
-  const router = useRouter();
   const queryClient = useQueryClient();
-  const [pendingData, setPendingData] = useState<Awaited<
-    ReturnType<typeof getAdminPendingData>
-  > | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: pendingData, isLoading: loading } = useQuery({
+    queryKey: queryKeys.adminPending,
+    queryFn: getAdminPendingData,
+  });
   const [addForm, setAddForm] = useState<{
     shopName: string;
     shopType: "GACHA" | "KUJI" | "BOTH";
@@ -62,14 +60,7 @@ export function AdminDashboard() {
   const [adding, setAdding] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const loadPending = async () => {
-    const data = await getAdminPendingData();
-    setPendingData(data);
-  };
-
-  useEffect(() => {
-    loadPending().finally(() => setLoading(false));
-  }, []);
+  const loadPending = () => queryClient.invalidateQueries({ queryKey: queryKeys.adminPending });
 
   const handleSearchAddress = () => {
     const w = window as unknown as { daum?: { Postcode: new (opts: unknown) => { open: () => void } }; kakao?: { Postcode: new (opts: unknown) => { open: () => void } } };

@@ -3,4 +3,5 @@ export const queryKeys = {
   shop: (id: number) => ["shop", id] as const,
   authState: ["authState"] as const,
   ownerShops: ["ownerShops"] as const,
+  adminPending: ["adminPending"] as const,
 } as const;
