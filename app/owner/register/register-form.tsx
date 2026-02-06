@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,8 +17,12 @@ import {
   geocodeAddress,
   registerShop,
   uploadShopImage,
+  getNearbyShopsAction,
+  claimShop,
   type ShopType,
 } from "@/app/actions/owner";
+import type { Shop } from "@/types/shop";
+import { queryKeys } from "@/lib/query-keys";
 
 const SHOP_TYPES: { value: ShopType; label: string }[] = [
   { value: "GACHA", label: "💊 가챠" },
@@ -54,6 +59,7 @@ interface DaumPostcodeData {
 
 export function RegisterForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -80,6 +86,9 @@ export function RegisterForm() {
     lat: number;
     lng: number;
   } | null>(null);
+  const [nearbyShops, setNearbyShops] = useState<Shop[] | null>(null);
+  const [skipNearbyCheck, setSkipNearbyCheck] = useState(false);
+  const [claimingShopId, setClaimingShopId] = useState<number | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [representativeImageFile, setRepresentativeImageFile] =
     useState<File | null>(null);
@@ -111,12 +120,34 @@ export function RegisterForm() {
         const fullAddr = addr + extraAddr;
         setValue("address", fullAddr, { shouldValidate: true });
 
-        geocodeAddress(fullAddr).then((res) => {
-          if (res.ok) setGeocodedLatLng({ lat: res.lat, lng: res.lng });
-          else setGeocodedLatLng(null);
+        geocodeAddress(fullAddr).then(async (res) => {
+          if (res.ok) {
+            setGeocodedLatLng({ lat: res.lat, lng: res.lng });
+            setNearbyShops(null);
+            setSkipNearbyCheck(false);
+            const nearby = await getNearbyShopsAction(res.lat, res.lng, 50);
+            setNearbyShops(nearby);
+          } else {
+            setGeocodedLatLng(null);
+            setNearbyShops(null);
+          }
         });
       },
     }).open();
+  };
+
+  const handleClaimShop = async (shopId: number) => {
+    setFormError(null);
+    setClaimingShopId(shopId);
+    const result = await claimShop(shopId);
+    setClaimingShopId(null);
+    if (!result.success) {
+      setFormError(result.error ?? "클레임 신청에 실패했습니다.");
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.authState });
+    router.push("/owner/shops");
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
@@ -168,7 +199,13 @@ export function RegisterForm() {
       setFormError(result.error ?? "입점 신청에 실패했습니다.");
       return;
     }
-    router.push("/owner/shops");
+    await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.authState });
+    if ("pending" in result && result.pending) {
+      router.push("/owner/shops?pending=1");
+    } else {
+      router.push("/owner/shops");
+    }
   };
 
   const shopType = useWatch({
@@ -199,6 +236,49 @@ export function RegisterForm() {
             </div>
           </div>
         </div>
+
+        {nearbyShops && nearbyShops.length > 0 && !skipNearbyCheck && (
+          <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200">
+            <p className="font-semibold text-amber-800 mb-3">
+              이 근처에 등록된 매장이 있어요
+            </p>
+            <p className="text-sm text-amber-700 mb-3">
+              내 매장이면 클레임을 신청해주세요. 운영자 승인 후 관리할 수 있습니다.
+            </p>
+            <ul className="space-y-2 mb-4">
+              {nearbyShops.map((shop) => (
+                <li
+                  key={shop.id}
+                  className="flex items-center justify-between gap-2 p-3 rounded-lg bg-white border border-amber-100"
+                >
+                  <div>
+                    <span className="font-medium">{shop.name}</span>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      {shop.address}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="shrink-0 bg-amber-600 hover:bg-amber-700"
+                    onClick={() => handleClaimShop(shop.id)}
+                    disabled={claimingShopId !== null}
+                  >
+                    {claimingShopId === shop.id ? "신청 중..." : "이 매장이에요"}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-amber-300 text-amber-800 hover:bg-amber-100"
+              onClick={() => setSkipNearbyCheck(true)}
+            >
+              없어요, 신규 등록할게요
+            </Button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {formError && (

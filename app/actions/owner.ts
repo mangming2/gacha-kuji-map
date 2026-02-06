@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getOwnerByAuthUserId,
   getOwnerShopsForList,
+  getNearbyShops,
 } from "@/lib/supabase/queries";
 
 const DEFAULT_LAT = 37.5665;
@@ -114,10 +115,19 @@ export async function uploadShopImage(
   return { url: publicUrl };
 }
 
-/** 입점 신청: shops + shop_owners에 저장 */
+/** 근처 매장 조회 (입점/클레임 분기용) */
+export async function getNearbyShopsAction(
+  lat: number,
+  lng: number,
+  radiusM?: number
+) {
+  return getNearbyShops(lat, lng, radiusM ?? 50);
+}
+
+/** 입점 신청: 운영자는 즉시 APPROVED, 일반 사장님은 PENDING */
 export async function registerShop(
   input: RegisterShopInput
-): Promise<{ success: boolean; error?: string; shopId?: number }> {
+): Promise<{ success: boolean; error?: string; shopId?: number; pending?: boolean }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -132,6 +142,8 @@ export async function registerShop(
     return { success: false, error: "사장님 정보를 찾을 수 없습니다. 다시 로그인해주세요." };
   }
 
+  const isAdmin = owner.role === "admin";
+
   const fullAddress = [input.address, input.detailAddress].filter(Boolean).join(" ");
   let lat = input.lat;
   let lng = input.lng;
@@ -142,6 +154,9 @@ export async function registerShop(
   }
 
   const now = new Date().toISOString();
+  const status = isAdmin ? "APPROVED" : "PENDING";
+  const updateSource = isAdmin ? "operator" : null;
+
   const { data: shopData, error: shopError } = await supabase
     .from("shops")
     .insert({
@@ -157,6 +172,8 @@ export async function registerShop(
       representative_image_url: input.representativeImageUrl || null,
       promotional_text: null,
       last_updated_at: null,
+      status,
+      update_source: updateSource,
       created_at: now,
       updated_at: now,
     })
@@ -168,24 +185,78 @@ export async function registerShop(
     return { success: false, error: shopError?.message ?? "매장 등록에 실패했습니다." };
   }
 
-  const { error: linkError } = await supabase.from("shop_owners").insert({
-    owner_id: owner.id,
-    shop_id: shopData.id,
-  });
-
-  if (linkError) {
-    console.error("registerShop shop_owners insert:", linkError);
-    await supabase.from("shops").delete().eq("id", shopData.id);
-    return { success: false, error: "매장 연결에 실패했습니다." };
+  if (isAdmin) {
+    const { error: linkError } = await supabase.from("shop_owners").insert({
+      owner_id: owner.id,
+      shop_id: shopData.id,
+    });
+    if (linkError) {
+      console.error("registerShop shop_owners insert:", linkError);
+      await supabase.from("shops").delete().eq("id", shopData.id);
+      return { success: false, error: "매장 연결에 실패했습니다." };
+    }
+  } else {
+    const { error: reqError } = await supabase
+      .from("shop_registration_requests")
+      .insert({
+        owner_id: owner.id,
+        shop_id: shopData.id,
+        status: "PENDING",
+      });
+    if (reqError) {
+      console.error("registerShop shop_registration_requests insert:", reqError);
+      await supabase.from("shops").delete().eq("id", shopData.id);
+      return { success: false, error: "등록 요청 저장에 실패했습니다." };
+    }
   }
 
-  return { success: true, shopId: shopData.id };
+  return {
+    success: true,
+    shopId: shopData.id,
+    pending: !isAdmin,
+  };
+}
+
+/** 기존 매장 클레임 신청 */
+export async function claimShop(
+  shopId: number
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다." };
+  }
+
+  const owner = await getOwnerByAuthUserId(user.id);
+  if (!owner) {
+    return { success: false, error: "사장님 정보를 찾을 수 없습니다." };
+  }
+
+  const { error } = await supabase.from("shop_claims").insert({
+    owner_id: owner.id,
+    shop_id: shopId,
+    status: "PENDING",
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { success: false, error: "이미 클레임 신청한 매장입니다." };
+    }
+    console.error("claimShop:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
 }
 
 /** 메뉴용: 로그인 상태 + 업장 수 (클라이언트 getUser 대신 사용, 401 방지) */
 export async function getAuthState(): Promise<{
   user: { id: string; email?: string } | null;
   shopCount: number;
+  isAdmin: boolean;
 }> {
   const supabase = await createClient();
   const {
@@ -193,18 +264,23 @@ export async function getAuthState(): Promise<{
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { user: null, shopCount: 0 };
+    return { user: null, shopCount: 0, isAdmin: false };
   }
 
   const owner = await getOwnerByAuthUserId(user.id);
   if (!owner) {
-    return { user: { id: user.id, email: user.email ?? undefined }, shopCount: 0 };
+    return {
+      user: { id: user.id, email: user.email ?? undefined },
+      shopCount: 0,
+      isAdmin: false,
+    };
   }
 
   const shops = await getOwnerShopsForList(owner.id);
   return {
     user: { id: user.id, email: user.email ?? undefined },
     shopCount: shops.length,
+    isAdmin: owner.role === "admin",
   };
 }
 

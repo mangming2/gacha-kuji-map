@@ -22,6 +22,9 @@ export interface KujiStatus {
   imageUrl?: string; // 대표 이미지
 }
 
+export type ShopStatus = "PENDING" | "APPROVED";
+export type UpdateSource = "operator" | "claimed" | "verified";
+
 export interface Shop {
   id: number;
   name: string;
@@ -35,6 +38,8 @@ export interface Shop {
   representativeImageUrl?: string; // 대표 사진
   promotionalText?: string; // 홍보 문구 (100자 이내)
   lastUpdatedAt?: string; // 마지막 재고 업데이트
+  status?: ShopStatus;
+  updateSource?: UpdateSource;
   gachaMachines?: GachaMachine[];
   kujiStatuses?: KujiStatus[];
 }

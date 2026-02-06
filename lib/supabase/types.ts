@@ -15,6 +15,18 @@ export interface DbShop {
   representative_image_url: string | null;
   promotional_text: string | null;
   last_updated_at: string | null;
+  status?: string | null;
+  update_source?: string | null;
+  last_updated_by?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbShopClaim {
+  id: number;
+  owner_id: number;
+  shop_id: number;
+  status: string;
   created_at: string;
   updated_at: string;
 }

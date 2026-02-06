@@ -8,7 +8,11 @@ import { Store, PlusCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default async function OwnerShopsPage() {
+export default async function OwnerShopsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pending?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -51,11 +55,17 @@ export default async function OwnerShopsPage() {
   }
 
   const shops = await getOwnerShopsForList(owner.id);
+  const { pending } = await searchParams;
 
   if (shops.length === 0) {
     return (
       <div className="min-h-screen bg-emerald-50/50">
         <div className="container max-w-md mx-auto px-4 py-12">
+          {pending === "1" && (
+            <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-sm">
+              입점 신청이 완료되었습니다. 운영자 승인 후 업장 목록에서 확인할 수 있습니다.
+            </div>
+          )}
           <Card className="bg-amber-50/80 border-amber-200">
             <CardContent className="pt-6 text-center space-y-4">
               <p className="text-amber-800">등록된 업장이 없습니다.</p>

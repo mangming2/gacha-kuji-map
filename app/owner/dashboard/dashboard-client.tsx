@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useForm,
   useFieldArray,
@@ -28,7 +29,9 @@ import {
   upsertGachaMachines,
   upsertKujiStatuses,
 } from "@/app/actions/shop";
+import { queryKeys } from "@/lib/query-keys";
 import { Minus, Plus, Save, ImagePlus, ImageOff, PlusCircle, Store, Trash2 } from "lucide-react";
+import { formatRelativeTime } from "@/lib/format-relative-time";
 
 const DEFAULT_GRADES = ["A상", "B상", "C상", "D상", "라스트원"];
 
@@ -66,6 +69,7 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ initialShop }: DashboardClientProps) {
+  const queryClient = useQueryClient();
   const ownerShop = initialShop;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -103,7 +107,11 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
         ]),
       ) as Record<number, { grade: string; count: number }[]>,
   );
-  const [lastUpdated, setLastUpdated] = useState("1분 미만 전 업데이트");
+  const [lastUpdated, setLastUpdated] = useState(
+    () =>
+      (ownerShop?.lastUpdatedAt && formatRelativeTime(ownerShop.lastUpdatedAt) + " 업데이트") ||
+      "업데이트 정보 없음"
+  );
   const [saving, setSaving] = useState(false);
 
   const [addGachaOpen, setAddGachaOpen] = useState(false);
@@ -159,6 +167,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
     setSaving(false);
     if (result.success) {
       setLastUpdated("방금 업데이트");
+      await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
       alert("홍보 문구가 저장되었습니다.");
     } else {
       alert(`저장 실패: ${result.error}`);
@@ -189,6 +198,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
 
     if (gachaResult.success && kujiResult.success) {
       setLastUpdated("방금 업데이트");
+      await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
       alert("재고가 저장되었습니다.");
     } else {
       alert(

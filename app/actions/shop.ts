@@ -1,7 +1,23 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getOwnerByAuthUserId, getOwnerShopIds } from "@/lib/supabase/queries";
 import type { GachaMachine, KujiStatus } from "@/types/shop";
+
+async function getUpdateSource(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  shopId: number
+): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return "operator";
+  const owner = await getOwnerByAuthUserId(user.id);
+  if (!owner) return "operator";
+  if (owner.role === "admin") return "operator";
+  const shopIds = await getOwnerShopIds(owner.id);
+  return shopIds.includes(shopId) ? "claimed" : "operator";
+}
 
 export async function updateShopPromo(
   shopId: number,
@@ -13,10 +29,12 @@ export async function updateShopPromo(
   }
 ) {
   const supabase = await createClient();
+  const updateSource = await getUpdateSource(supabase, shopId);
 
   const updateData: Record<string, unknown> = {
     last_updated_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    update_source: updateSource,
   };
   if (data.promotionalText !== undefined)
     updateData.promotional_text = data.promotionalText;
@@ -74,11 +92,13 @@ export async function upsertGachaMachines(
     return { success: false, error: insertError.message };
   }
 
+  const updateSource = await getUpdateSource(supabase, shopId);
   await supabase
     .from("shops")
     .update({
       last_updated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      update_source: updateSource,
     })
     .eq("id", shopId);
 
@@ -123,11 +143,13 @@ export async function upsertKujiStatuses(
     return { success: false, error: insertError.message };
   }
 
+  const updateSource = await getUpdateSource(supabase, shopId);
   await supabase
     .from("shops")
     .update({
       last_updated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      update_source: updateSource,
     })
     .eq("id", shopId);
 

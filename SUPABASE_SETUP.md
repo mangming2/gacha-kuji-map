@@ -28,7 +28,8 @@ Supabase 대시보드 → **SQL Editor**에서 아래 순서로 실행:
 1. `supabase/migrations/0001_initial_schema.sql` 전체 복사 후 실행
 2. `supabase/migrations/0003_add_closed_days_and_kuji_image.sql` 실행 (휴무요일, 쿠지 대표 이미지 컬럼 추가)
 3. `supabase/migrations/0004_shop_images_storage.sql` 실행 (매장 대표 이미지 Storage 버킷 생성)
-4. `supabase/seed.sql` 전체 복사 후 실행 (더미 데이터: 매장/가챠/쿠지, Unsplash 이미지 URL 포함)
+4. `supabase/migrations/0005_claim_approval.sql` 실행 (owners.role, shops.status/update_source, shop_claims, shop_registration_requests)
+5. `supabase/seed.sql` 전체 복사 후 실행 (더미 데이터: 매장/가챠/쿠지, Unsplash 이미지 URL 포함)
 
 ## 4. 동작 방식
 
@@ -89,6 +90,14 @@ Supabase 대시보드 → **SQL Editor**에서 아래 순서로 실행:
    - `UPDATE owners SET auth_user_id = '<uuid>' WHERE id = 1;` 실행
 
 로그인 시 owner가 없으면 자동으로 생성됩니다.
+
+## 7-1. 운영자(Admin) 지정
+
+운영자 대시보드(`/admin`) 접근 권한을 부여하려면:
+
+```sql
+UPDATE owners SET role = 'admin' WHERE id = 1;  -- 또는 특정 이메일: WHERE email = 'your@email.com';
+```
 
 ## 8. 추후 개선 사항
 - **Supabase Storage**: 입점 신청 시 대표 사진 업로드 지원 (shop-images 버킷). 대시보드 가챠/쿠지 이미지 업로드 연동

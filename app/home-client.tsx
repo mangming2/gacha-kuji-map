@@ -7,6 +7,7 @@ import { FilterTabs, type FilterState } from "@/components/filter-tabs";
 import { ShopDetailSheet } from "@/components/shop-detail-sheet";
 import { MenuSheet } from "@/components/menu-sheet";
 import { Button } from "@/components/ui/button";
+import { useShops } from "@/lib/hooks/use-shops";
 import type { Shop } from "@/types/shop";
 
 function filterShops(shops: Shop[], filter: FilterState): Shop[] {
@@ -35,6 +36,7 @@ interface HomeClientProps {
 }
 
 export function HomeClient({ initialShops }: HomeClientProps) {
+  const { data: shops = initialShops } = useShops(initialShops);
   const [filter, setFilter] = useState<FilterState>({
     gacha: true,
     kuji: true,
@@ -44,8 +46,8 @@ export function HomeClient({ initialShops }: HomeClientProps) {
   const [moveToLocationTrigger, setMoveToLocationTrigger] = useState(0);
 
   const filteredShops = useMemo(
-    () => filterShops(initialShops, filter),
-    [initialShops, filter]
+    () => filterShops(shops, filter),
+    [shops, filter]
   );
 
   const handleMarkerClick = useCallback((shop: Shop) => {

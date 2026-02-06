@@ -10,7 +10,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { Shop } from "@/types/shop";
+import { formatRelativeTime } from "@/lib/format-relative-time";
 import { Clock, MapPin, Store, FileText } from "lucide-react";
+
+const UPDATE_SOURCE_LABELS: Record<string, string> = {
+  operator: "운영자",
+  claimed: "매장관리자",
+  verified: "검증됨",
+};
 
 function GachaContent({ shop }: { shop: Shop }) {
   if (!shop.gachaMachines || shop.gachaMachines.length === 0) {
@@ -176,6 +183,11 @@ export function ShopDetailSheet({ shop, open, onOpenChange }: ShopDetailSheetPro
                   {shop.isOpen ? "영업중" : "영업종료"}
                 </Badge>
                 <Badge variant="outline">{categoryLabels[shop.type]}</Badge>
+                {shop.updateSource && UPDATE_SOURCE_LABELS[shop.updateSource] && (
+                  <Badge variant="secondary">
+                    {UPDATE_SOURCE_LABELS[shop.updateSource]}
+                  </Badge>
+                )}
                 {shop.stockStatus && (
                   <Badge variant="secondary">{shop.stockStatus}</Badge>
                 )}
@@ -206,6 +218,13 @@ export function ShopDetailSheet({ shop, open, onOpenChange }: ShopDetailSheetPro
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
               <MapPin className="size-4 shrink-0" />
               <span>{shop.address}</span>
+            </div>
+          )}
+          {shop.lastUpdatedAt && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+              <span>
+                {formatRelativeTime(shop.lastUpdatedAt)} 업데이트
+              </span>
             </div>
           )}
         </SheetHeader>

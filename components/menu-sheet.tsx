@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, HelpCircle, LogIn, Store, PlusCircle, LogOut } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Menu, HelpCircle, LogIn, Store, PlusCircle, LogOut, Shield } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -13,7 +14,9 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { FaqDialog } from "@/components/faq-dialog";
-import { getAuthState, signOut } from "@/app/actions/owner";
+import { signOut } from "@/app/actions/owner";
+import { useAuthState } from "@/lib/hooks/use-auth-state";
+import { queryKeys } from "@/lib/query-keys";
 
 interface MenuItem {
   id: string;
@@ -25,33 +28,23 @@ interface MenuItem {
 
 export function MenuSheet() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [faqOpen, setFaqOpen] = useState(false);
-  const [user, setUser] = useState<{ id: string } | null>(null);
-  /** null = 로딩 중, 0 = 업장 없음, >0 = 업장 있음 */
-  const [shopCount, setShopCount] = useState<number | null>(null);
+  const { data, refetch } = useAuthState();
 
-  useEffect(() => {
-    getAuthState().then(({ user: u, shopCount: c }) => {
-      setUser(u);
-      setShopCount(c);
-    });
-  }, []);
+  const user = data?.user ?? null;
+  const shopCount = data?.shopCount ?? null;
+  const isAdmin = data?.isAdmin ?? false;
 
   // 메뉴 열 때마다 최신 인증 상태 반영 (다른 탭에서 로그인한 경우 등)
   useEffect(() => {
-    if (open) {
-      getAuthState().then(({ user: u, shopCount: c }) => {
-        setUser(u);
-        setShopCount(c);
-      });
-    }
-  }, [open]);
+    if (open) refetch();
+  }, [open, refetch]);
 
   const handleLogout = async () => {
     await signOut();
-    setUser(null);
-    setShopCount(0);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.authState });
     setOpen(false);
   };
 
@@ -66,6 +59,16 @@ export function MenuSheet() {
 
   const ownerItems: MenuItem[] = user
     ? [
+        ...(isAdmin
+          ? [
+              {
+                id: "admin",
+                label: "운영자 대시보드",
+                icon: <Shield className="size-5" />,
+                onClick: () => router.push("/admin"),
+              },
+            ]
+          : []),
         ...(shopCount === null || shopCount > 0
           ? [
               {
