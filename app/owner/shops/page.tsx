@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnerByAuthUserId, getOwnerShopsForList } from "@/lib/supabase/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Store, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
+import { ShopListClient } from "@/app/owner/shops/shop-list-client";
 
 export const dynamic = "force-dynamic";
 
@@ -100,18 +101,7 @@ export default async function OwnerShopsPage({
           관리할 업장을 선택하세요.
         </p>
 
-        <div className="space-y-3">
-          {shops.map((shop) => (
-            <Link key={shop.id} href={`/owner/dashboard?shopId=${shop.id}`}>
-              <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-                <CardContent className="flex items-center gap-3 py-4">
-                  <Store className="size-5 text-primary" />
-                  <span className="font-medium">{shop.name}</span>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <ShopListClient shops={shops} />
 
         <div className="mt-8 flex flex-col gap-3">
           <Button asChild variant="outline" className="w-full">

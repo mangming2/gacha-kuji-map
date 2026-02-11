@@ -28,6 +28,7 @@ async function getUpdateSource(
 export async function updateShopPromo(
   shopId: number,
   data: {
+    name?: string;
     promotionalText?: string;
     representativeImageUrl?: string | null;
     businessHours?: string;
@@ -42,6 +43,7 @@ export async function updateShopPromo(
     updated_at: new Date().toISOString(),
     update_source: updateSource,
   };
+  if (data.name !== undefined) updateData.name = data.name.trim();
   if (data.promotionalText !== undefined)
     updateData.promotional_text = data.promotionalText;
   if (data.representativeImageUrl !== undefined)

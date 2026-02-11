@@ -23,7 +23,11 @@ import {
 import { toast } from "sonner";
 import type { Shop, ShopType } from "@/types/shop";
 import { queryKeys } from "@/lib/query-keys";
-import { MAX_IMAGE_BYTES, MAX_IMAGE_ERROR_MESSAGE } from "@/lib/constants";
+import {
+  validateImageFile,
+  uploadImageWithValidation,
+} from "@/lib/utils/upload-image";
+import { useDaumPostcode } from "@/lib/hooks/use-daum-postcode";
 
 const SHOP_TYPES: { value: ShopType; label: string }[] = [
   { value: "GACHA", label: "💊 가챠" },
@@ -47,16 +51,6 @@ const registerSchema = z.object({
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
-
-interface DaumPostcodeData {
-  userSelectedType: string;
-  roadAddress: string;
-  jibunAddress: string;
-  zonecode: string;
-  bname?: string;
-  buildingName?: string;
-  apartment?: string;
-}
 
 export function RegisterForm() {
   const router = useRouter();
@@ -97,44 +91,24 @@ export function RegisterForm() {
     string | null
   >(null);
 
+  const { openAddressSearch } = useDaumPostcode();
+
   const handleSearchAddress = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Daum/Kakao Postcode API
-    const w = window as any;
-    const Postcode = w.daum?.Postcode ?? w.kakao?.Postcode;
-    if (!Postcode) return;
-
-    new Postcode({
-      oncomplete: (data: DaumPostcodeData) => {
-        const addr =
-          data.userSelectedType === "R" ? data.roadAddress : data.jibunAddress;
-        let extraAddr = "";
-        if (data.userSelectedType === "R") {
-          if (data.bname && /[동|로|가]$/g.test(data.bname))
-            extraAddr += data.bname;
-          if (data.buildingName && data.apartment === "Y") {
-            extraAddr += extraAddr
-              ? `, ${data.buildingName}`
-              : data.buildingName;
-          }
-          if (extraAddr) extraAddr = ` (${extraAddr})`;
+    openAddressSearch((fullAddr) => {
+      setValue("address", fullAddr, { shouldValidate: true });
+      geocodeAddress(fullAddr).then(async (res) => {
+        if (res.ok) {
+          setGeocodedLatLng({ lat: res.lat, lng: res.lng });
+          setNearbyShops(null);
+          setSkipNearbyCheck(false);
+          const nearby = await getNearbyShopsAction(res.lat, res.lng, 50);
+          setNearbyShops(nearby);
+        } else {
+          setGeocodedLatLng(null);
+          setNearbyShops(null);
         }
-        const fullAddr = addr + extraAddr;
-        setValue("address", fullAddr, { shouldValidate: true });
-
-        geocodeAddress(fullAddr).then(async (res) => {
-          if (res.ok) {
-            setGeocodedLatLng({ lat: res.lat, lng: res.lng });
-            setNearbyShops(null);
-            setSkipNearbyCheck(false);
-            const nearby = await getNearbyShopsAction(res.lat, res.lng, 50);
-            setNearbyShops(nearby);
-          } else {
-            setGeocodedLatLng(null);
-            setNearbyShops(null);
-          }
-        });
-      },
-    }).open();
+      });
+    });
   };
 
   const handleClaimShop = async (shopId: number) => {
@@ -181,9 +155,10 @@ export function RegisterForm() {
 
     let representativeImageUrl: string | null = null;
     if (representativeImageFile) {
-      const formData = new FormData();
-      formData.append("file", representativeImageFile);
-      const uploadResult = await uploadShopImage(formData);
+      const uploadResult = await uploadImageWithValidation(
+        representativeImageFile,
+        uploadShopImage
+      );
       if ("error" in uploadResult) {
         toast.error(uploadResult.error);
         setFormError(uploadResult.error);
@@ -419,8 +394,9 @@ export function RegisterForm() {
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
-                  if (file.size > MAX_IMAGE_BYTES) {
-                    setFormError(MAX_IMAGE_ERROR_MESSAGE);
+                  const err = validateImageFile(file);
+                  if (err) {
+                    setFormError(err);
                     return;
                   }
                   setRepresentativeImageFile(file);

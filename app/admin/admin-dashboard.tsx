@@ -19,19 +19,14 @@ import {
 } from "@/app/actions/admin";
 import { geocodeAddress, uploadShopImage } from "@/app/actions/owner";
 import { queryKeys } from "@/lib/query-keys";
-import { MAX_IMAGE_BYTES, MAX_IMAGE_ERROR_MESSAGE } from "@/lib/constants";
+import {
+  validateImageFile,
+  uploadImageWithValidation,
+} from "@/lib/utils/upload-image";
 import type { RegisterShopInput } from "@/app/actions/owner";
 import { Search, Check, X, Shield, ImagePlus, ImageOff, Store } from "lucide-react";
 import Image from "next/image";
-
-interface DaumPostcodeData {
-  userSelectedType: string;
-  roadAddress: string;
-  jibunAddress: string;
-  bname?: string;
-  buildingName?: string;
-  apartment?: string;
-}
+import { useDaumPostcode } from "@/lib/hooks/use-daum-postcode";
 
 export function AdminDashboard() {
   const queryClient = useQueryClient();
@@ -65,36 +60,19 @@ export function AdminDashboard() {
   const [actingId, setActingId] = useState<string | null>(null);
 
   const loadPending = () => queryClient.invalidateQueries({ queryKey: queryKeys.adminPending });
+  const { openAddressSearch } = useDaumPostcode();
 
   const handleSearchAddress = () => {
-    const w = window as unknown as { daum?: { Postcode: new (opts: unknown) => { open: () => void } }; kakao?: { Postcode: new (opts: unknown) => { open: () => void } } };
-    const Postcode = w.daum?.Postcode ?? w.kakao?.Postcode;
-    if (!Postcode) return;
-
-    new Postcode({
-      oncomplete: (data: DaumPostcodeData) => {
-        const addr =
-          data.userSelectedType === "R" ? data.roadAddress : data.jibunAddress;
-        let extraAddr = "";
-        if (data.userSelectedType === "R") {
-          if (data.bname && /[동|로|가]$/g.test(data.bname))
-            extraAddr += data.bname;
-          if (data.buildingName && data.apartment === "Y") {
-            extraAddr += extraAddr ? `, ${data.buildingName}` : data.buildingName;
-          }
-          if (extraAddr) extraAddr = ` (${extraAddr})`;
+    openAddressSearch((fullAddr) => {
+      setAddForm((f) => ({ ...f, address: fullAddr }));
+      geocodeAddress(fullAddr).then((res) => {
+        if (res.ok) {
+          setAddForm((f) => ({ ...f, lat: res.lat, lng: res.lng }));
+        } else {
+          setAddForm((f) => ({ ...f, lat: null, lng: null }));
         }
-        const fullAddr = addr + extraAddr;
-        setAddForm((f) => ({ ...f, address: fullAddr }));
-        geocodeAddress(fullAddr).then((res) => {
-          if (res.ok) {
-            setAddForm((f) => ({ ...f, lat: res.lat, lng: res.lng }));
-          } else {
-            setAddForm((f) => ({ ...f, lat: null, lng: null }));
-          }
-        });
-      },
-    }).open();
+      });
+    });
   };
 
   const handleAddShop = async (e: React.FormEvent) => {
@@ -118,9 +96,10 @@ export function AdminDashboard() {
     setAdding(true);
     let representativeImageUrl: string | null = null;
     if (representativeImageFile) {
-      const formData = new FormData();
-      formData.append("file", representativeImageFile);
-      const uploadResult = await uploadShopImage(formData);
+      const uploadResult = await uploadImageWithValidation(
+        representativeImageFile,
+        uploadShopImage
+      );
       if ("error" in uploadResult) {
         setAddError(uploadResult.error);
         setAdding(false);
@@ -468,8 +447,9 @@ export function AdminDashboard() {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > MAX_IMAGE_BYTES) {
-                            setAddError(MAX_IMAGE_ERROR_MESSAGE);
+                          const err = validateImageFile(file);
+                          if (err) {
+                            setAddError(err);
                             return;
                           }
                           setRepresentativeImageFile(file);

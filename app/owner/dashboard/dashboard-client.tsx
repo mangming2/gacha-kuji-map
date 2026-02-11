@@ -31,7 +31,7 @@ import {
 } from "@/app/actions/shop";
 import { uploadShopImage } from "@/app/actions/owner";
 import { queryKeys } from "@/lib/query-keys";
-import { MAX_IMAGE_BYTES, MAX_IMAGE_ERROR_MESSAGE } from "@/lib/constants";
+import { uploadImageWithValidation } from "@/lib/utils/upload-image";
 import { toast } from "sonner";
 import { Minus, Plus, Save, ImagePlus, ImageOff, PlusCircle, Store, Trash2 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/format-relative-time";
@@ -76,6 +76,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
   const ownerShop = initialShop;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [shopName, setShopName] = useState(ownerShop?.name ?? "");
   const [promotionalText, setPromotionalText] = useState(
     ownerShop?.promotionalText ??
       "이곳은 체험용 매장입니다. 자유롭게 테스트해보세요!",
@@ -153,6 +154,10 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
 
   const handleSavePromo = async () => {
     if (!ownerShop) return;
+    if (!shopName.trim()) {
+      toast.error("매장 이름을 입력해주세요.");
+      return;
+    }
     setSaving(true);
     // http/https URL만 저장 (blob URL은 업로드 후 대체됨)
     const imageUrl =
@@ -162,6 +167,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
           ? representativeImage
           : ownerShop.representativeImageUrl ?? undefined;
     const result = await updateShopPromo(ownerShop.id, {
+      name: shopName.trim(),
       promotionalText,
       representativeImageUrl: imageUrl,
       businessHours,
@@ -171,7 +177,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
     if (result.success) {
       setLastUpdated("방금 업데이트");
       await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
-      toast.success("홍보 문구가 저장되었습니다.");
+      toast.success("매장 정보가 저장되었습니다.");
     } else {
       toast.error(`저장 실패: ${result.error}`);
     }
@@ -216,21 +222,13 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
       e.target.value = "";
       return;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      toast.error(MAX_IMAGE_ERROR_MESSAGE);
-      e.target.value = "";
-      return;
-    }
-    const formData = new FormData();
-    formData.append("file", file);
-    const uploadResult = await uploadShopImage(formData);
-    if ("error" in uploadResult) {
-      toast.error(`이미지 업로드 실패: ${uploadResult.error}`);
-      e.target.value = "";
-      return;
-    }
-    setRepresentativeImage(uploadResult.url);
+    const result = await uploadImageWithValidation(file, uploadShopImage);
     e.target.value = "";
+    if ("error" in result) {
+      toast.error(result.error);
+      return;
+    }
+    setRepresentativeImage(result.url);
   };
 
   const handleGachaImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,26 +237,18 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
       e.target.value = "";
       return;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      toast.error(MAX_IMAGE_ERROR_MESSAGE);
-      e.target.value = "";
-      return;
-    }
-    const formData = new FormData();
-    formData.append("file", file);
-    const uploadResult = await uploadShopImage(formData);
-    if ("error" in uploadResult) {
-      toast.error(`이미지 업로드 실패: ${uploadResult.error}`);
-      e.target.value = "";
+    const result = await uploadImageWithValidation(file, uploadShopImage);
+    e.target.value = "";
+    if ("error" in result) {
+      toast.error(result.error);
       return;
     }
     setGachaMachines((prev) =>
       prev.map((m) =>
-        m.id === editingGachaImageId ? { ...m, imageUrl: uploadResult.url } : m,
+        m.id === editingGachaImageId ? { ...m, imageUrl: result.url } : m,
       ),
     );
     setEditingGachaImageId(null);
-    e.target.value = "";
   };
 
   const handleKujiImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -267,26 +257,18 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
       e.target.value = "";
       return;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      toast.error(MAX_IMAGE_ERROR_MESSAGE);
-      e.target.value = "";
-      return;
-    }
-    const formData = new FormData();
-    formData.append("file", file);
-    const uploadResult = await uploadShopImage(formData);
-    if ("error" in uploadResult) {
-      toast.error(`이미지 업로드 실패: ${uploadResult.error}`);
-      e.target.value = "";
+    const result = await uploadImageWithValidation(file, uploadShopImage);
+    e.target.value = "";
+    if ("error" in result) {
+      toast.error(result.error);
       return;
     }
     setKujiStatuses((prev) =>
       prev.map((s) =>
-        s.id === editingKujiImageId ? { ...s, imageUrl: uploadResult.url } : s,
+        s.id === editingKujiImageId ? { ...s, imageUrl: result.url } : s,
       ),
     );
     setEditingKujiImageId(null);
-    e.target.value = "";
   };
 
   const updateGachaStock = (id: number, delta: number) => {
@@ -447,6 +429,17 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                 <div className="flex-1 min-w-0">
                   <h2 className="font-medium text-sm mb-2">매장 정보</h2>
                   <div className="space-y-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground">
+                        매장 이름
+                      </label>
+                      <Input
+                        value={shopName}
+                        onChange={(e) => setShopName(e.target.value)}
+                        placeholder="예: ○○ 가챠랜드"
+                        className="h-8 mt-0.5 text-sm"
+                      />
+                    </div>
                     <div>
                       <label className="text-xs text-muted-foreground">
                         영업시간
@@ -854,20 +847,16 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                           e.target.value = "";
                           return;
                         }
-                        if (file.size > MAX_IMAGE_BYTES) {
-                          toast.error(MAX_IMAGE_ERROR_MESSAGE);
-                          e.target.value = "";
-                          return;
-                        }
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        const result = await uploadShopImage(formData);
+                        const result = await uploadImageWithValidation(
+                          file,
+                          uploadShopImage
+                        );
+                        e.target.value = "";
                         if ("error" in result) {
-                          toast.error(`이미지 업로드 실패: ${result.error}`);
+                          toast.error(result.error);
                         } else {
                           field.onChange(result.url);
                         }
-                        e.target.value = "";
                       }}
                     />
                     <span className="text-xs text-muted-foreground">
@@ -952,20 +941,16 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                           e.target.value = "";
                           return;
                         }
-                        if (file.size > MAX_IMAGE_BYTES) {
-                          toast.error(MAX_IMAGE_ERROR_MESSAGE);
-                          e.target.value = "";
-                          return;
-                        }
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        const result = await uploadShopImage(formData);
+                        const result = await uploadImageWithValidation(
+                          file,
+                          uploadShopImage
+                        );
+                        e.target.value = "";
                         if ("error" in result) {
-                          toast.error(`이미지 업로드 실패: ${result.error}`);
+                          toast.error(result.error);
                         } else {
                           field.onChange(result.url);
                         }
-                        e.target.value = "";
                       }}
                     />
                     <span className="text-xs text-muted-foreground">

@@ -219,28 +219,6 @@ export async function rejectShopClaim(
   return { success: true };
 }
 
-/** 운영자: 매장 검증됨 표시 */
-export async function setShopVerified(
-  shopId: number
-): Promise<{ success: boolean; error?: string }> {
-  const auth = await requireAdmin();
-  if (!auth.ok) return { success: false, error: auth.error };
-
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from("shops")
-    .update({
-      update_source: "verified",
-      last_updated_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", shopId);
-
-  if (error) return { success: false, error: error.message };
-  return { success: true };
-}
-
 /** 운영자: 승인 대기 데이터 조회 */
 export async function getAdminPendingData() {
   const auth = await requireAdmin();

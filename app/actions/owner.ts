@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getOwnerByAuthUserId,
   getOwnerShopsForList,
+  getOwnerShopIds,
   getNearbyShops,
   createOwnerIfNotExists,
   getCommentsByOwnerId,
@@ -284,31 +285,14 @@ export async function getAuthState(): Promise<{
   };
 }
 
-/** 현재 로그인한 사용자의 업장 목록 (id, name). 업장 없으면 [] */
-export async function getCurrentOwnerShops(): Promise<
-  { id: number; name: string }[]
-> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return [];
-
-  const owner = await getOwnerByAuthUserId(user.id);
-  if (!owner) return [];
-
-  return getOwnerShopsForList(owner.id);
-}
-
 /** 로그아웃 (서버에서 세션/쿠키 정리) */
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
 }
 
-/** 현재 로그인한 사용자의 owner id. 없으면 null */
-export async function getCurrentOwnerId(): Promise<number | null> {
+/** 현재 로그인한 사용자의 owner id. 없으면 null (내부용) */
+async function getCurrentOwnerId(): Promise<number | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -377,4 +361,51 @@ export async function getMyCommentReports(): Promise<MyCommentRow[]> {
   const ownerId = await getCurrentOwnerId();
   if (!ownerId) return [];
   return getCommentsByOwnerId(ownerId);
+}
+
+/** 업장 관리: 내 매장 삭제 (소유 확인 후 연관 데이터 삭제) */
+export async function deleteShop(
+  shopId: number
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "로그인이 필요합니다." };
+
+  const owner = await getOwnerByAuthUserId(user.id);
+  if (!owner) return { success: false, error: "등록된 업장이 없습니다." };
+
+  const shopIds = await getOwnerShopIds(owner.id);
+  if (!shopIds.includes(shopId)) {
+    return { success: false, error: "해당 매장을 삭제할 권한이 없습니다." };
+  }
+
+  // 연관 데이터 삭제 (FK 순서)
+  const tables = [
+    "shop_comments",
+    "gacha_machines",
+    "kuji_statuses",
+    "shop_claims",
+    "shop_registration_requests",
+    "shop_owners",
+  ] as const;
+
+  for (const table of tables) {
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq("shop_id", shopId);
+    if (error) {
+      console.error(`deleteShop ${table}:`, error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  const { error } = await supabase.from("shops").delete().eq("id", shopId);
+  if (error) {
+    console.error("deleteShop shops:", error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
 }
