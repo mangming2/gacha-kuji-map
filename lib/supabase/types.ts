@@ -51,3 +51,12 @@ export interface DbKujiStatus {
   image_url?: string | null;
   created_at: string;
 }
+
+export interface DbShopComment {
+  id: number;
+  shop_id: number;
+  owner_id: number;
+  content: string;
+  image_url: string | null;
+  created_at: string;
+}

@@ -5,7 +5,11 @@ import {
   getOwnerByAuthUserId,
   getOwnerShopsForList,
   getNearbyShops,
+  createOwnerIfNotExists,
+  getCommentsByOwnerId,
 } from "@/lib/supabase/queries";
+import type { MyCommentRow } from "@/lib/supabase/queries";
+import type { ShopType } from "@/types/shop";
 
 const DEFAULT_LAT = 37.5665;
 const DEFAULT_LNG = 126.978;
@@ -56,8 +60,6 @@ export async function geocodeAddress(
   }
   return { lat: DEFAULT_LAT, lng: DEFAULT_LNG, ok: false };
 }
-
-export type ShopType = "GACHA" | "KUJI" | "BOTH";
 
 export interface RegisterShopInput {
   shopName: string;
@@ -124,7 +126,7 @@ export async function getNearbyShopsAction(
   return getNearbyShops(lat, lng, radiusM ?? 50);
 }
 
-/** 입점 신청: 운영자는 즉시 APPROVED, 일반 사장님은 PENDING */
+/** 가게 등록: 로그인한 모든 유저 가능. 운영자는 즉시 APPROVED+shop_owners 연결, 일반 유저는 APPROVED(커뮤니티 등록) */
 export async function registerShop(
   input: RegisterShopInput
 ): Promise<{ success: boolean; error?: string; shopId?: number; pending?: boolean }> {
@@ -137,9 +139,20 @@ export async function registerShop(
     return { success: false, error: "로그인이 필요합니다." };
   }
 
-  const owner = await getOwnerByAuthUserId(user.id);
+  let owner = await getOwnerByAuthUserId(user.id);
   if (!owner) {
-    return { success: false, error: "사장님 정보를 찾을 수 없습니다. 다시 로그인해주세요." };
+    await createOwnerIfNotExists(
+      user.id,
+      user.email ?? "",
+      (user.user_metadata?.name as string) ??
+        (user.user_metadata?.nickname as string) ??
+        user.email ??
+        "사용자"
+    );
+    owner = await getOwnerByAuthUserId(user.id);
+  }
+  if (!owner) {
+    return { success: false, error: "사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요." };
   }
 
   const isAdmin = owner.role === "admin";
@@ -154,8 +167,8 @@ export async function registerShop(
   }
 
   const now = new Date().toISOString();
-  const status = isAdmin ? "APPROVED" : "PENDING";
-  const updateSource = isAdmin ? "operator" : null;
+  const status = "APPROVED";
+  const updateSource = isAdmin ? "operator" : "community";
 
   const { data: shopData, error: shopError } = await supabase
     .from("shops")
@@ -195,25 +208,12 @@ export async function registerShop(
       await supabase.from("shops").delete().eq("id", shopData.id);
       return { success: false, error: "매장 연결에 실패했습니다." };
     }
-  } else {
-    const { error: reqError } = await supabase
-      .from("shop_registration_requests")
-      .insert({
-        owner_id: owner.id,
-        shop_id: shopData.id,
-        status: "PENDING",
-      });
-    if (reqError) {
-      console.error("registerShop shop_registration_requests insert:", reqError);
-      await supabase.from("shops").delete().eq("id", shopData.id);
-      return { success: false, error: "등록 요청 저장에 실패했습니다." };
-    }
   }
 
   return {
     success: true,
     shopId: shopData.id,
-    pending: !isAdmin,
+    pending: false,
   };
 }
 
@@ -318,4 +318,63 @@ export async function getCurrentOwnerId(): Promise<number | null> {
 
   const owner = await getOwnerByAuthUserId(user.id);
   return owner?.id ?? null;
+}
+
+/** 마이페이지: 내 프로필 (이름, 이메일) */
+export async function getMyProfile(): Promise<{
+  id: number;
+  name: string;
+  email: string;
+} | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const owner = await getOwnerByAuthUserId(user.id);
+  if (!owner) return null;
+
+  return { id: owner.id, name: owner.name, email: owner.email };
+}
+
+/** 마이페이지: 내 이름(닉네임) 수정 (DB 함수 사용으로 RLS 영향 없이 동작) */
+export async function updateMyName(
+  name: string
+): Promise<{ success: boolean; error?: string }> {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { success: false, error: "이름을 입력해주세요." };
+  }
+  if (trimmed.length > 50) {
+    return { success: false, error: "이름은 50자 이내로 입력해주세요." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "로그인이 필요합니다." };
+  }
+
+  const { error } = await supabase.rpc("update_owner_display_name", {
+    new_name: trimmed,
+  });
+
+  if (error) {
+    console.error("updateMyName:", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+/** 마이페이지: 내가 남긴 현황 제보 목록 */
+export async function getMyCommentReports(): Promise<MyCommentRow[]> {
+  const ownerId = await getCurrentOwnerId();
+  if (!ownerId) return [];
+  return getCommentsByOwnerId(ownerId);
 }

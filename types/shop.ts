@@ -23,7 +23,7 @@ export interface KujiStatus {
 }
 
 export type ShopStatus = "PENDING" | "APPROVED";
-export type UpdateSource = "operator" | "claimed" | "verified";
+export type UpdateSource = "operator" | "claimed" | "verified" | "community";
 
 export interface Shop {
   id: number;

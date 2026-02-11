@@ -12,11 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import type { Shop } from "@/types/shop";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { Clock, MapPin, Store, FileText } from "lucide-react";
+import { ShopFeedComments } from "@/components/shop-feed-comments";
 
 const UPDATE_SOURCE_LABELS: Record<string, string> = {
   operator: "운영자",
   claimed: "매장관리자",
   verified: "검증됨",
+  community: "커뮤니티",
 };
 
 function GachaContent({ shop }: { shop: Shop }) {
@@ -45,7 +47,7 @@ function GachaContent({ shop }: { shop: Shop }) {
               />
             </div>
           ) : (
-            <div className="aspect-square w-12 shrink-0 rounded bg-amber-100 flex items-center justify-center text-amber-600 text-lg">
+            <div className="aspect-square w-12 shrink-0 rounded bg-hero-gold/20 flex items-center justify-center text-hero-blue-dark text-lg">
               💊
             </div>
           )}
@@ -56,7 +58,7 @@ function GachaContent({ shop }: { shop: Shop }) {
             </span>
           </div>
           {machine.stock != null && (
-            <span className="text-sm font-medium text-amber-700 shrink-0">
+            <span className="text-sm font-medium text-hero-blue-dark shrink-0">
               {machine.stock}개
             </span>
           )}
@@ -92,7 +94,7 @@ function KujiContent({ shop }: { shop: Shop }) {
               />
             </div>
           ) : (
-            <div className="aspect-square w-12 shrink-0 rounded bg-violet-100 flex items-center justify-center text-violet-600 text-lg">
+            <div className="aspect-square w-12 shrink-0 rounded bg-hero-blue-dark/20 flex items-center justify-center text-hero-blue-dark text-lg">
               🎫
             </div>
           )}
@@ -114,7 +116,7 @@ function KujiContent({ shop }: { shop: Shop }) {
                 .map((g) => (
                   <span
                     key={g.grade}
-                    className="text-xs px-2 py-0.5 rounded bg-violet-100 text-violet-800"
+                    className="text-xs px-2 py-0.5 rounded bg-hero-blue-dark/15 text-hero-blue-dark"
                   >
                     {g.grade} {g.count}개
                   </span>
@@ -176,7 +178,7 @@ export function ShopDetailSheet({ shop, open, onOpenChange }: ShopDetailSheetPro
                   variant={shop.isOpen ? "default" : "secondary"}
                   className={
                     shop.isOpen
-                      ? "bg-green-500 hover:bg-green-600"
+                      ? "bg-primary hover:bg-primary/90"
                       : "bg-muted"
                   }
                 >
@@ -229,31 +231,34 @@ export function ShopDetailSheet({ shop, open, onOpenChange }: ShopDetailSheetPro
           )}
         </SheetHeader>
 
-        {shop.type === "BOTH" ? (
-          <Tabs defaultValue="gacha" className="flex-1 overflow-hidden flex flex-col">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="gacha">💊 가챠</TabsTrigger>
-              <TabsTrigger value="kuji">🎫 쿠지</TabsTrigger>
-            </TabsList>
-
-            <div className="flex-1 overflow-y-auto mt-4 px-4">
-              <TabsContent value="gacha" className="mt-0">
+        <div className="flex-1 overflow-y-auto mt-4 px-4 space-y-6">
+          {shop.type === "BOTH" ? (
+            <Tabs defaultValue="gacha" className="overflow-hidden flex flex-col">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="gacha">💊 가챠</TabsTrigger>
+                <TabsTrigger value="kuji">🎫 쿠지</TabsTrigger>
+              </TabsList>
+              <TabsContent value="gacha" className="mt-4">
                 <GachaContent shop={shop} />
               </TabsContent>
-              <TabsContent value="kuji" className="mt-0">
+              <TabsContent value="kuji" className="mt-4">
                 <KujiContent shop={shop} />
               </TabsContent>
-            </div>
-          </Tabs>
-        ) : (
-          <div className="flex-1 overflow-y-auto mt-4 px-4">
-            {shop.type === "GACHA" ? (
-              <GachaContent shop={shop} />
-            ) : (
-              <KujiContent shop={shop} />
-            )}
+            </Tabs>
+          ) : (
+            <>
+              {shop.type === "GACHA" ? (
+                <GachaContent shop={shop} />
+              ) : (
+                <KujiContent shop={shop} />
+              )}
+            </>
+          )}
+
+          <div className="pt-4 border-t border-border">
+            <ShopFeedComments shopId={shop.id} />
           </div>
-        )}
+        </div>
       </SheetContent>
     </Sheet>
   );

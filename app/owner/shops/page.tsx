@@ -25,15 +25,15 @@ export default async function OwnerShopsPage({
   const owner = await getOwnerByAuthUserId(user.id);
   if (!owner) {
     return (
-      <div className="min-h-screen bg-emerald-50/50">
+      <div className="min-h-screen bg-muted/50">
         <div className="container max-w-md mx-auto px-4 py-12">
-          <Card className="bg-amber-50/80 border-amber-200">
+          <Card className="bg-card border-border">
             <CardContent className="pt-6 text-center space-y-4">
-              <p className="text-amber-800">등록된 업장이 없습니다.</p>
-              <p className="text-sm text-amber-700">
+              <p className="text-foreground">등록된 업장이 없습니다.</p>
+              <p className="text-sm text-muted-foreground">
                 입점 신청을 먼저 진행해주세요.
               </p>
-              <Button asChild className="bg-amber-700 hover:bg-amber-800">
+              <Button asChild className="bg-primary hover:bg-primary/90">
                 <Link href="/owner/register" className="flex items-center gap-2">
                   <PlusCircle className="size-5" />
                   업장 추가
@@ -59,17 +59,17 @@ export default async function OwnerShopsPage({
 
   if (shops.length === 0) {
     return (
-      <div className="min-h-screen bg-emerald-50/50">
+      <div className="min-h-screen bg-muted/50">
         <div className="container max-w-md mx-auto px-4 py-12">
           {pending === "1" && (
-            <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-sm">
+            <div className="mb-6 p-4 rounded-xl bg-muted border border-border text-foreground text-sm">
               입점 신청이 완료되었습니다. 운영자 승인 후 업장 목록에서 확인할 수 있습니다.
             </div>
           )}
-          <Card className="bg-amber-50/80 border-amber-200">
+          <Card className="bg-card border-border">
             <CardContent className="pt-6 text-center space-y-4">
-              <p className="text-amber-800">등록된 업장이 없습니다.</p>
-              <Button asChild className="bg-amber-700 hover:bg-amber-800">
+              <p className="text-foreground">등록된 업장이 없습니다.</p>
+              <Button asChild className="bg-primary hover:bg-primary/90">
                 <Link href="/owner/register" className="flex items-center gap-2">
                   <PlusCircle className="size-5" />
                   업장 추가
@@ -91,9 +91,9 @@ export default async function OwnerShopsPage({
   }
 
   return (
-    <div className="min-h-screen bg-emerald-50/50">
+    <div className="min-h-screen bg-muted/50">
       <div className="container max-w-md mx-auto px-4 py-12">
-        <h1 className="text-2xl font-bold text-emerald-800 mb-6">
+        <h1 className="text-2xl font-bold text-primary mb-6">
           업장 관리
         </h1>
         <p className="text-muted-foreground mb-6">
@@ -105,7 +105,7 @@ export default async function OwnerShopsPage({
             <Link key={shop.id} href={`/owner/dashboard?shopId=${shop.id}`}>
               <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
                 <CardContent className="flex items-center gap-3 py-4">
-                  <Store className="size-5 text-emerald-600" />
+                  <Store className="size-5 text-primary" />
                   <span className="font-medium">{shop.name}</span>
                 </CardContent>
               </Card>

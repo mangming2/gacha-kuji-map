@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { Menu, HelpCircle, LogIn, Store, PlusCircle, LogOut, Shield } from "lucide-react";
+import { Menu, HelpCircle, LogIn, Store, PlusCircle, LogOut, Shield, User } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -87,6 +87,12 @@ export function MenuSheet() {
           onClick: () => router.push("/owner/register"),
         },
         {
+          id: "mypage",
+          label: "마이페이지",
+          icon: <User className="size-5" />,
+          onClick: () => router.push("/mypage"),
+        },
+        {
           id: "owner-logout",
           label: "로그아웃",
           icon: <LogOut className="size-5" />,
@@ -96,7 +102,7 @@ export function MenuSheet() {
     : [
         {
           id: "owner-login",
-          label: "사장님 로그인",
+          label: "로그인",
           icon: <LogIn className="size-5" />,
           onClick: () => router.push("/owner/login"),
         },
@@ -121,7 +127,7 @@ export function MenuSheet() {
           <SheetHeader>
             <SheetTitle>메뉴</SheetTitle>
             <SheetDescription className="sr-only">
-              FAQ, 사장님 로그인, 업장 관리 등
+              FAQ, 로그인, 업장 관리 등
             </SheetDescription>
           </SheetHeader>
           <nav className="flex flex-col gap-1 mt-6">

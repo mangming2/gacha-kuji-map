@@ -30,7 +30,7 @@ export function FilterTabs({ filter, onChange }: FilterTabsProps) {
         onClick={toggleGacha}
         className={cn(
           "rounded-full font-medium transition-all",
-          filter.gacha && "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
+          filter.gacha && "bg-hero-gold hover:bg-hero-gold-soft text-hero-black border-hero-gold"
         )}
       >
         💊 가챠
@@ -41,7 +41,7 @@ export function FilterTabs({ filter, onChange }: FilterTabsProps) {
         onClick={toggleKuji}
         className={cn(
           "rounded-full font-medium transition-all",
-          filter.kuji && "bg-violet-500 hover:bg-violet-600 text-white border-violet-500"
+          filter.kuji && "bg-hero-blue-dark hover:bg-hero-blue text-white border-hero-blue-dark"
         )}
       >
         🎫 쿠지

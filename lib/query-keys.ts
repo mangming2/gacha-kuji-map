@@ -1,7 +1,7 @@
 export const queryKeys = {
   shops: ["shops"] as const,
-  shop: (id: number) => ["shop", id] as const,
+  shopComments: (shopId: number) => ["shopComments", shopId] as const,
   authState: ["authState"] as const,
-  ownerShops: ["ownerShops"] as const,
   adminPending: ["adminPending"] as const,
+  myProfile: ["myProfile"] as const,
 } as const;

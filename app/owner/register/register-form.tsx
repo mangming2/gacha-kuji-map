@@ -19,11 +19,11 @@ import {
   uploadShopImage,
   getNearbyShopsAction,
   claimShop,
-  type ShopType,
 } from "@/app/actions/owner";
 import { toast } from "sonner";
-import type { Shop } from "@/types/shop";
+import type { Shop, ShopType } from "@/types/shop";
 import { queryKeys } from "@/lib/query-keys";
+import { MAX_IMAGE_BYTES, MAX_IMAGE_ERROR_MESSAGE } from "@/lib/constants";
 
 const SHOP_TYPES: { value: ShopType; label: string }[] = [
   { value: "GACHA", label: "💊 가챠" },
@@ -230,7 +230,7 @@ export function RegisterForm() {
   });
 
   return (
-    <div className="min-h-screen bg-emerald-50/50">
+    <div className="min-h-screen bg-muted/50">
       <Script
         src="https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
         strategy="afterInteractive"
@@ -241,14 +241,14 @@ export function RegisterForm() {
         </div>
 
         <div className="space-y-4 mb-6">
-          <div className="flex gap-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
-            <Info className="size-5 text-blue-600 shrink-0 mt-0.5" />
+          <div className="flex gap-3 p-4 rounded-lg bg-muted border border-border">
+            <Info className="size-5 text-primary shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-semibold text-blue-800">입점 가능 업종 확인</p>
-              <p className="text-blue-700 mt-1">
+              <p className="font-semibold text-primary">입점 가능 업종 확인</p>
+              <p className="text-muted-foreground mt-1">
                 가챠샵, 쿠지샵, 복합 매장이 주요 대상입니다.
               </p>
-              <p className="text-blue-700 mt-2 font-medium">
+              <p className="text-muted-foreground mt-2 font-medium">
                 운영자 승인 후 지도에 등록됩니다.
               </p>
             </div>
@@ -256,11 +256,11 @@ export function RegisterForm() {
         </div>
 
         {nearbyShops && nearbyShops.length > 0 && !skipNearbyCheck && (
-          <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200">
-            <p className="font-semibold text-amber-800 mb-3">
+          <div className="mb-6 p-4 rounded-xl bg-secondary/30 border border-border">
+            <p className="font-semibold text-foreground mb-3">
               이 근처에 등록된 매장이 있어요
             </p>
-            <p className="text-sm text-amber-700 mb-3">
+            <p className="text-sm text-muted-foreground mb-3">
               내 매장이면 클레임을 신청해주세요. 운영자 승인 후 관리할 수
               있습니다.
             </p>
@@ -268,7 +268,7 @@ export function RegisterForm() {
               {nearbyShops.map((shop) => (
                 <li
                   key={shop.id}
-                  className="flex items-center justify-between gap-2 p-3 rounded-lg bg-white border border-amber-100"
+                  className="flex items-center justify-between gap-2 p-3 rounded-lg bg-card border border-border"
                 >
                   <div>
                     <span className="font-medium">{shop.name}</span>
@@ -279,7 +279,7 @@ export function RegisterForm() {
                   <Button
                     type="button"
                     size="sm"
-                    className="shrink-0 bg-amber-600 hover:bg-amber-700"
+                    className="shrink-0 bg-primary hover:bg-primary/90"
                     onClick={() => handleClaimShop(shop.id)}
                     disabled={claimingShopId !== null}
                   >
@@ -293,7 +293,7 @@ export function RegisterForm() {
             <Button
               type="button"
               variant="outline"
-              className="w-full border-amber-300 text-amber-800 hover:bg-amber-100"
+              className="w-full border-border text-foreground hover:bg-muted"
               onClick={() => setSkipNearbyCheck(true)}
             >
               없어요, 신규 등록할게요
@@ -337,7 +337,7 @@ export function RegisterForm() {
                   onClick={() => setValue("shopType", opt.value)}
                   className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     shopType === opt.value
-                      ? "bg-amber-100 border-amber-500 text-amber-800"
+                      ? "bg-secondary/50 border-primary text-primary"
                       : "bg-background border-input hover:bg-muted"
                   }`}
                 >
@@ -419,8 +419,8 @@ export function RegisterForm() {
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
-                  if (file.size > 5 * 1024 * 1024) {
-                    setFormError("이미지 크기는 5MB 이하여야 합니다.");
+                  if (file.size > MAX_IMAGE_BYTES) {
+                    setFormError(MAX_IMAGE_ERROR_MESSAGE);
                     return;
                   }
                   setRepresentativeImageFile(file);
@@ -506,7 +506,7 @@ export function RegisterForm() {
               {...register("detailAddress")}
             />
             {geocodedLatLng && (
-              <p className="text-xs text-emerald-600">
+              <p className="text-xs text-primary">
                 ✓ 위치가 확인되었습니다
               </p>
             )}
@@ -540,7 +540,7 @@ export function RegisterForm() {
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-12 bg-amber-700 hover:bg-amber-800 text-white mt-6"
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground mt-6"
           >
             {isSubmitting ? "요청 중..." : "추가 요청하기"}
           </Button>

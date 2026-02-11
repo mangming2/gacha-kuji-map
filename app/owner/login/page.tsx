@@ -2,41 +2,47 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 import { HelpCircle, Heart, Loader2 } from "lucide-react";
 
 export default function OwnerLoginPage() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/owner/shops";
   const [loading, setLoading] = useState(false);
 
   const handleKakaoLogin = async () => {
     setLoading(true);
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const callbackUrl = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`,
+        redirectTo: callbackUrl,
         // account_email은 비즈앱에서만 지원 - 일반 앱은 profile만 요청
         scopes: "profile_nickname profile_image",
       },
     });
     if (error) {
       setLoading(false);
-      alert(`로그인 실패: ${error.message}`);
+      toast.error(`로그인 실패: ${error.message}`);
       return;
     }
     // signInWithOAuth가 리다이렉트하므로 아래 코드는 실행되지 않음
   };
   return (
-    <div className="min-h-screen bg-emerald-50/50">
+    <div className="min-h-screen bg-muted/50">
       <div className="container max-w-md mx-auto px-4 py-12">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-emerald-800">사장님 전용</h1>
-          <p className="text-emerald-600 mt-1">가챠·쿠지 맵 재고 관리 페이지</p>
+          <h1 className="text-2xl font-bold text-primary">가챠·쿠지 맵</h1>
+          <p className="text-muted-foreground mt-1">로그인 후 매장 제보·관리를 이용하세요</p>
         </div>
 
-        <Card className="bg-amber-50/80 border-amber-200">
+        <Card className="bg-card border-border">
           <CardContent className="pt-6 space-y-4">
             {/* <Button
               variant="outline"
@@ -65,7 +71,7 @@ export default function OwnerLoginPage() {
             </Button> */}
 
             <Button
-              className="w-full h-12 bg-[#FEE500] text-[#191919] hover:bg-[#FEE500]/90 justify-start gap-3"
+              className="w-full h-12 bg-hero-gold text-hero-black hover:bg-hero-gold-soft justify-start gap-3"
               onClick={handleKakaoLogin}
               disabled={loading}
             >
@@ -94,15 +100,15 @@ export default function OwnerLoginPage() {
               네이버로 시작하기
             </Button> */}
 
-            <div className="pt-4 border-t border-amber-200">
-              <div className="flex items-center gap-2 text-sm text-amber-800">
+            <div className="pt-4 border-t border-border">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <HelpCircle className="size-4 shrink-0" />
                 <span>로그인 문제가 있으신가요?</span>
               </div>
               <button
                 type="button"
                 className="mt-2 text-sm text-blue-600 hover:underline"
-                onClick={() => alert("카카오톡 1:1 문의 준비 중입니다.")}
+                onClick={() => toast.info("카카오톡 1:1 문의 준비 중입니다.")}
               >
                 카카오톡 1:1 문의하기
               </button>
@@ -116,8 +122,8 @@ export default function OwnerLoginPage() {
           </p>
           <Button
             variant="outline"
-            className="bg-amber-100 border-amber-200 text-amber-800 hover:bg-amber-200"
-            onClick={() => alert("개발자 응원하기 준비 중입니다.")}
+            className="bg-secondary border-border text-secondary-foreground hover:bg-secondary/90"
+            onClick={() => toast.info("개발자 응원하기 준비 중입니다.")}
           >
             <Heart className="size-4 mr-2 fill-current" />
             개발자에게 가챠하나 선물하기

@@ -1,5 +1,5 @@
 import type { Shop } from "@/types/shop";
-import type { DbShop, DbGachaMachine, DbKujiStatus } from "./types";
+import type { DbShop, DbGachaMachine, DbKujiStatus, DbShopComment } from "./types";
 import { createClient } from "./server";
 import { haversineDistanceMeters } from "@/lib/geo";
 
@@ -314,4 +314,99 @@ export async function getPendingRegistrations(): Promise<PendingRegistration[]> 
       createdAt: r.created_at,
     };
   });
+}
+
+export interface ShopCommentRow {
+  id: number;
+  shopId: number;
+  ownerId: number;
+  authorName: string;
+  content: string;
+  imageUrl: string | null;
+  createdAt: string;
+}
+
+/** 가게별 현황 제보(댓글) 목록, 최신순 */
+export async function getShopComments(
+  shopId: number
+): Promise<ShopCommentRow[]> {
+  const supabase = await createClient();
+
+  const { data: comments, error: commentsError } = await supabase
+    .from("shop_comments")
+    .select("id, shop_id, owner_id, content, image_url, created_at")
+    .eq("shop_id", shopId)
+    .order("created_at", { ascending: false });
+
+  if (commentsError || !comments?.length) return [];
+
+  const commentsData = (comments ?? []) as DbShopComment[];
+  const ownerIds = [...new Set(commentsData.map((c) => c.owner_id))];
+
+  const { data: owners } = await supabase
+    .from("owners")
+    .select("id, name")
+    .in("id", ownerIds);
+
+  const ownerMap = Object.fromEntries(
+    ((owners ?? []) as { id: number; name: string }[]).map((o) => [o.id, o.name])
+  );
+
+  return commentsData.map((c) => ({
+    id: c.id,
+    shopId: c.shop_id,
+    ownerId: c.owner_id,
+    authorName: ownerMap[c.owner_id] ?? "알 수 없음",
+    content: c.content,
+    imageUrl: c.image_url,
+    createdAt: c.created_at,
+  }));
+}
+
+export interface MyCommentRow {
+  id: number;
+  shopId: number;
+  shopName: string;
+  content: string;
+  imageUrl: string | null;
+  createdAt: string;
+}
+
+/** 내가 쓴 현황 제보 목록 (마이페이지용), 최신순 */
+export async function getCommentsByOwnerId(
+  ownerId: number
+): Promise<MyCommentRow[]> {
+  const supabase = await createClient();
+
+  const { data: comments, error: commentsError } = await supabase
+    .from("shop_comments")
+    .select("id, shop_id, content, image_url, created_at")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false });
+
+  if (commentsError || !comments?.length) return [];
+
+  const commentsData = (comments ?? []) as Pick<
+    DbShopComment,
+    "id" | "shop_id" | "content" | "image_url" | "created_at"
+  >[];
+  const shopIds = [...new Set(commentsData.map((c) => c.shop_id))];
+
+  const { data: shops } = await supabase
+    .from("shops")
+    .select("id, name")
+    .in("id", shopIds);
+
+  const shopMap = Object.fromEntries(
+    ((shops ?? []) as { id: number; name: string }[]).map((s) => [s.id, s.name])
+  );
+
+  return commentsData.map((c) => ({
+    id: c.id,
+    shopId: c.shop_id,
+    shopName: shopMap[c.shop_id] ?? "알 수 없는 매장",
+    content: c.content,
+    imageUrl: c.image_url,
+    createdAt: c.created_at,
+  }));
 }

@@ -31,6 +31,8 @@ import {
 } from "@/app/actions/shop";
 import { uploadShopImage } from "@/app/actions/owner";
 import { queryKeys } from "@/lib/query-keys";
+import { MAX_IMAGE_BYTES, MAX_IMAGE_ERROR_MESSAGE } from "@/lib/constants";
+import { toast } from "sonner";
 import { Minus, Plus, Save, ImagePlus, ImageOff, PlusCircle, Store, Trash2 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 
@@ -169,9 +171,9 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
     if (result.success) {
       setLastUpdated("방금 업데이트");
       await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
-      alert("홍보 문구가 저장되었습니다.");
+      toast.success("홍보 문구가 저장되었습니다.");
     } else {
-      alert(`저장 실패: ${result.error}`);
+      toast.error(`저장 실패: ${result.error}`);
     }
   };
 
@@ -200,9 +202,9 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
     if (gachaResult.success && kujiResult.success) {
       setLastUpdated("방금 업데이트");
       await queryClient.invalidateQueries({ queryKey: queryKeys.shops });
-      alert("재고가 저장되었습니다.");
+      toast.success("재고가 저장되었습니다.");
     } else {
-      alert(
+      toast.error(
         `저장 실패: ${gachaResult.success ? "" : gachaResult.error} ${kujiResult.success ? "" : kujiResult.error}`,
       );
     }
@@ -214,8 +216,8 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
       e.target.value = "";
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      alert("이미지 크기는 5MB 이하여야 합니다.");
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error(MAX_IMAGE_ERROR_MESSAGE);
       e.target.value = "";
       return;
     }
@@ -223,7 +225,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
     formData.append("file", file);
     const uploadResult = await uploadShopImage(formData);
     if ("error" in uploadResult) {
-      alert(`이미지 업로드 실패: ${uploadResult.error}`);
+      toast.error(`이미지 업로드 실패: ${uploadResult.error}`);
       e.target.value = "";
       return;
     }
@@ -237,8 +239,8 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
       e.target.value = "";
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      alert("이미지 크기는 5MB 이하여야 합니다.");
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error(MAX_IMAGE_ERROR_MESSAGE);
       e.target.value = "";
       return;
     }
@@ -246,7 +248,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
     formData.append("file", file);
     const uploadResult = await uploadShopImage(formData);
     if ("error" in uploadResult) {
-      alert(`이미지 업로드 실패: ${uploadResult.error}`);
+      toast.error(`이미지 업로드 실패: ${uploadResult.error}`);
       e.target.value = "";
       return;
     }
@@ -265,8 +267,8 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
       e.target.value = "";
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      alert("이미지 크기는 5MB 이하여야 합니다.");
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error(MAX_IMAGE_ERROR_MESSAGE);
       e.target.value = "";
       return;
     }
@@ -274,7 +276,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
     formData.append("file", file);
     const uploadResult = await uploadShopImage(formData);
     if ("error" in uploadResult) {
-      alert(`이미지 업로드 실패: ${uploadResult.error}`);
+      toast.error(`이미지 업로드 실패: ${uploadResult.error}`);
       e.target.value = "";
       return;
     }
@@ -356,7 +358,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
 
   if (!ownerShop) {
     return (
-      <div className="min-h-screen bg-emerald-50/50 flex items-center justify-center">
+      <div className="min-h-screen bg-muted/50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">등록된 매장이 없습니다.</p>
           <Link href="/owner/register">
@@ -368,7 +370,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-emerald-50/50">
+    <div className="min-h-screen bg-muted/50">
       <div className="container max-w-md mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-bold text-foreground">재고 관리</h1>
@@ -380,7 +382,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
         </div>
 
         <div className="space-y-4">
-          <Card className="bg-white border-emerald-100 overflow-hidden">
+          <Card className="bg-card border-border overflow-hidden">
             <CardContent className="p-3">
               <div className="flex flex-col gap-4">
                 <div>
@@ -496,7 +498,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h2 className="font-semibold text-amber-800 text-sm">
+                <h2 className="font-semibold text-primary text-sm">
                   💊 가챠
                 </h2>
                 <p className="text-xs text-muted-foreground">{lastUpdated}</p>
@@ -504,7 +506,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs border-amber-200 text-amber-800 hover:bg-amber-50"
+                className="h-7 text-xs border-border text-primary hover:bg-muted"
                 onClick={() => setAddGachaOpen(true)}
               >
                 <PlusCircle className="size-3.5 mr-1" />
@@ -515,7 +517,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
               {gachaMachines.map((machine) => (
                 <Card
                   key={machine.id}
-                  className="bg-amber-50/50 border-amber-200/80"
+                  className="bg-secondary/30 border-border"
                 >
                   <CardContent className="py-2 px-3">
                     <div className="flex items-center gap-2">
@@ -526,7 +528,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                             setEditingGachaImageId(machine.id);
                             existingGachaImageRef.current?.click();
                           }}
-                          className="relative aspect-square w-12 rounded overflow-hidden bg-amber-100 flex items-center justify-center group border border-amber-200"
+                          className="relative aspect-square w-12 rounded overflow-hidden bg-hero-gold/20 flex items-center justify-center group border border-border"
                         >
                           {machine.imageUrl ? (
                             <Image
@@ -545,7 +547,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-5 px-1.5 text-xs text-amber-700"
+                            className="h-5 px-1.5 text-xs text-primary"
                             onClick={() => {
                               setEditingGachaImageId(machine.id);
                               existingGachaImageRef.current?.click();
@@ -581,7 +583,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                           <Button
                             variant="outline"
                             size="icon"
-                            className="size-7 rounded-full border-amber-200"
+                            className="size-7 rounded-full border-border"
                             onClick={() => updateGachaStock(machine.id, -1)}
                           >
                             <Minus className="size-3" />
@@ -591,7 +593,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                           </span>
                           <Button
                             size="icon"
-                            className="size-7 rounded-full bg-amber-500 hover:bg-amber-600"
+                            className="size-7 rounded-full bg-primary hover:bg-primary/90"
                             onClick={() => updateGachaStock(machine.id, 1)}
                           >
                             <Plus className="size-3" />
@@ -602,7 +604,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="w-full mt-2 border-amber-200 text-amber-800 hover:bg-amber-50"
+                      className="w-full mt-2 border-border text-primary hover:bg-muted"
                       onClick={handleSaveStock}
                       disabled={saving}
                     >
@@ -625,7 +627,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h2 className="font-semibold text-violet-800 text-sm">
+                <h2 className="font-semibold text-primary text-sm">
                   🎫 쿠지
                 </h2>
                 <p className="text-xs text-muted-foreground">{lastUpdated}</p>
@@ -633,7 +635,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs border-violet-200 text-violet-800 hover:bg-violet-50"
+                className="h-7 text-xs border-border text-primary hover:bg-muted"
                 onClick={() => setAddKujiOpen(true)}
               >
                 <PlusCircle className="size-3.5 mr-1" />
@@ -647,7 +649,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                 return (
                   <Card
                     key={status.id}
-                    className="bg-violet-50/50 border-violet-200/80"
+                    className="bg-muted border-border"
                   >
                     <CardContent className="py-2 px-3">
                       <div className="flex items-start gap-2 mb-2">
@@ -658,7 +660,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                               setEditingKujiImageId(status.id);
                               existingKujiImageRef.current?.click();
                             }}
-                            className="relative aspect-square w-12 rounded overflow-hidden bg-violet-100 flex items-center justify-center group border border-violet-200"
+                            className="relative aspect-square w-12 rounded overflow-hidden bg-hero-blue-dark/15 flex items-center justify-center group border border-border"
                           >
                             {status.imageUrl ? (
                               <Image
@@ -677,7 +679,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-5 px-1.5 text-xs text-violet-700"
+                              className="h-5 px-1.5 text-xs text-primary"
                               onClick={() => {
                                 setEditingKujiImageId(status.id);
                                 existingKujiImageRef.current?.click();
@@ -706,16 +708,16 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm text-violet-900">
+                      <div className="font-medium text-sm text-foreground">
                         {status.name}
                       </div>
                       <div className="flex flex-wrap gap-1.5 mt-1">
                         {grades.map((g, idx) => (
                           <div
                             key={g.grade}
-                            className="flex items-center gap-0.5 bg-white/80 rounded px-2 py-0.5 border border-violet-100"
+                            className="flex items-center gap-0.5 bg-white/80 rounded px-2 py-0.5 border border-border"
                           >
-                            <span className="text-xs text-violet-700 font-medium">
+                            <span className="text-xs text-primary font-medium">
                               {g.grade}
                             </span>
                             <Button
@@ -747,7 +749,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="w-full mt-2 border-violet-200 text-violet-800 hover:bg-violet-50"
+                        className="w-full mt-2 border-border text-primary hover:bg-muted"
                         onClick={handleSaveStock}
                         disabled={saving}
                       >
@@ -827,7 +829,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                     <button
                       type="button"
                       onClick={() => newGachaImageInputRef.current?.click()}
-                      className="relative aspect-square w-16 rounded-lg overflow-hidden bg-muted border border-dashed border-amber-200 flex items-center justify-center"
+                      className="relative aspect-square w-16 rounded-lg overflow-hidden bg-muted border border-dashed border-border flex items-center justify-center"
                     >
                       {field.value ? (
                         <Image
@@ -852,8 +854,8 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                           e.target.value = "";
                           return;
                         }
-                        if (file.size > 5 * 1024 * 1024) {
-                          alert("이미지 크기는 5MB 이하여야 합니다.");
+                        if (file.size > MAX_IMAGE_BYTES) {
+                          toast.error(MAX_IMAGE_ERROR_MESSAGE);
                           e.target.value = "";
                           return;
                         }
@@ -861,7 +863,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                         formData.append("file", file);
                         const result = await uploadShopImage(formData);
                         if ("error" in result) {
-                          alert(`이미지 업로드 실패: ${result.error}`);
+                          toast.error(`이미지 업로드 실패: ${result.error}`);
                         } else {
                           field.onChange(result.url);
                         }
@@ -925,7 +927,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                     <button
                       type="button"
                       onClick={() => newKujiImageInputRef.current?.click()}
-                      className="relative aspect-square w-16 rounded-lg overflow-hidden bg-muted border border-dashed border-violet-200 flex items-center justify-center"
+                      className="relative aspect-square w-16 rounded-lg overflow-hidden bg-muted border border-dashed border-border flex items-center justify-center"
                     >
                       {field.value ? (
                         <Image
@@ -950,8 +952,8 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                           e.target.value = "";
                           return;
                         }
-                        if (file.size > 5 * 1024 * 1024) {
-                          alert("이미지 크기는 5MB 이하여야 합니다.");
+                        if (file.size > MAX_IMAGE_BYTES) {
+                          toast.error(MAX_IMAGE_ERROR_MESSAGE);
                           e.target.value = "";
                           return;
                         }
@@ -959,7 +961,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                         formData.append("file", file);
                         const result = await uploadShopImage(formData);
                         if ("error" in result) {
-                          alert(`이미지 업로드 실패: ${result.error}`);
+                          toast.error(`이미지 업로드 실패: ${result.error}`);
                         } else {
                           field.onChange(result.url);
                         }
@@ -980,7 +982,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-xs text-violet-700"
+                  className="h-6 text-xs text-primary"
                   onClick={() =>
                     kujiGradesField.append({ grade: "", count: 0 })
                   }
@@ -993,7 +995,7 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                 {kujiGradesField.fields.map((field, idx) => (
                   <div
                     key={field.id}
-                    className="flex items-center gap-2 rounded border border-violet-100 px-2 py-1.5 bg-violet-50/50"
+                    className="flex items-center gap-2 rounded border border-border px-2 py-1.5 bg-muted"
                   >
                     <Input
                       placeholder="등급명 (예: A상, 1등)"
@@ -1057,8 +1059,8 @@ export function DashboardClient({ initialShop }: DashboardClientProps) {
                 </p>
               )}
             </div>
-            <div className="rounded-lg bg-violet-100/50 px-3 py-2">
-              <p className="text-sm font-medium text-violet-800">
+            <div className="rounded-lg bg-muted px-3 py-2">
+              <p className="text-sm font-medium text-primary">
                 총{" "}
                 {(watchedKujiGrades ?? []).reduce(
                   (s, g) => s + (g?.count ?? 0),

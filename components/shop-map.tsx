@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import { toast } from "sonner";
 import type { Shop, ShopType } from "@/types/shop";
 
 const MARKER_STYLES: Record<
   ShopType,
   { bg: string; emoji: string; border: string }
 > = {
-  GACHA: { bg: "bg-amber-400", emoji: "💊", border: "border-amber-500" },
-  KUJI: { bg: "bg-violet-500", emoji: "🎫", border: "border-violet-600" },
-  BOTH: { bg: "bg-rose-500", emoji: "👑", border: "border-rose-600" },
+  GACHA: { bg: "bg-hero-gold", emoji: "💊", border: "border-hero-gold-soft" },
+  KUJI: { bg: "bg-hero-blue-dark", emoji: "🎫", border: "border-hero-blue" },
+  BOTH: { bg: "bg-hero-red", emoji: "👑", border: "border-hero-red" },
 };
 
 interface ShopMapProps {
@@ -141,7 +142,7 @@ export function ShopMap({
         mapInstanceRef.current?.setLevel?.(4);
       },
       () => {
-        alert("위치 정보를 가져올 수 없습니다. 위치 권한을 확인해주세요.");
+        toast.error("위치 정보를 가져올 수 없습니다. 위치 권한을 확인해주세요.");
       },
       { enableHighAccuracy: true },
     );

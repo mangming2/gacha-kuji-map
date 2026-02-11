@@ -19,6 +19,7 @@ import {
 } from "@/app/actions/admin";
 import { geocodeAddress, uploadShopImage } from "@/app/actions/owner";
 import { queryKeys } from "@/lib/query-keys";
+import { MAX_IMAGE_BYTES, MAX_IMAGE_ERROR_MESSAGE } from "@/lib/constants";
 import type { RegisterShopInput } from "@/app/actions/owner";
 import { Search, Check, X, Shield, ImagePlus, ImageOff, Store } from "lucide-react";
 import Image from "next/image";
@@ -251,7 +252,7 @@ export function AdminDashboard() {
                           <div className="flex gap-2 shrink-0">
                             <Button
                               size="sm"
-                              className="bg-green-600 hover:bg-green-700"
+                              className="bg-primary hover:bg-primary/90"
                               onClick={() => handleApproveRegistration(r.shopId)}
                               disabled={actingId !== null}
                             >
@@ -308,7 +309,7 @@ export function AdminDashboard() {
                           <div className="flex gap-2 shrink-0">
                             <Button
                               size="sm"
-                              className="bg-green-600 hover:bg-green-700"
+                              className="bg-primary hover:bg-primary/90"
                               onClick={() => handleApproveClaim(c.id)}
                               disabled={actingId !== null}
                             >
@@ -392,7 +393,7 @@ export function AdminDashboard() {
                           }
                           className={`px-3 py-1.5 rounded-lg text-sm ${
                             addForm.shopType === t
-                              ? "bg-amber-100 border border-amber-500"
+                              ? "bg-secondary/50 border border-primary"
                               : "bg-muted"
                           }`}
                         >
@@ -467,8 +468,8 @@ export function AdminDashboard() {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > 5 * 1024 * 1024) {
-                            setAddError("이미지 크기는 5MB 이하여야 합니다.");
+                          if (file.size > MAX_IMAGE_BYTES) {
+                            setAddError(MAX_IMAGE_ERROR_MESSAGE);
                             return;
                           }
                           setRepresentativeImageFile(file);
@@ -509,7 +510,7 @@ export function AdminDashboard() {
                       }
                     />
                     {addForm.lat != null && (
-                      <p className="text-xs text-emerald-600">
+                      <p className="text-xs text-primary">
                         ✓ 위치 확인됨
                       </p>
                     )}
@@ -544,7 +545,7 @@ export function AdminDashboard() {
                   <Button
                     type="submit"
                     disabled={adding}
-                    className="w-full bg-amber-700 hover:bg-amber-800"
+                    className="w-full bg-primary hover:bg-primary/90"
                   >
                     {adding ? "등록 중..." : "매장 추가"}
                   </Button>

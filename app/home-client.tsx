@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { MapPin } from "lucide-react";
 import { ShopMap } from "@/components/shop-map";
 import { FilterTabs, type FilterState } from "@/components/filter-tabs";
@@ -33,9 +33,13 @@ function filterShops(shops: Shop[], filter: FilterState): Shop[] {
 
 interface HomeClientProps {
   initialShops: Shop[];
+  initialShopId?: number;
 }
 
-export function HomeClient({ initialShops }: HomeClientProps) {
+export function HomeClient({
+  initialShops,
+  initialShopId,
+}: HomeClientProps) {
   const { data: shops = initialShops } = useShops(initialShops);
   const [filter, setFilter] = useState<FilterState>({
     gacha: true,
@@ -49,6 +53,15 @@ export function HomeClient({ initialShops }: HomeClientProps) {
     () => filterShops(shops, filter),
     [shops, filter]
   );
+
+  useEffect(() => {
+    if (initialShopId == null || filteredShops.length === 0) return;
+    const shop = filteredShops.find((s) => s.id === initialShopId);
+    if (shop) {
+      setSelectedShop(shop);
+      setSheetOpen(true);
+    }
+  }, [initialShopId, filteredShops]);
 
   const handleMarkerClick = useCallback((shop: Shop) => {
     setSelectedShop(shop);
@@ -81,7 +94,7 @@ export function HomeClient({ initialShops }: HomeClientProps) {
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
         <Button
           onClick={handleMoveToMyLocation}
-          className="rounded-full bg-foreground text-background shadow-lg hover:bg-foreground/90 px-6 py-6 font-medium"
+          className="rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 px-6 py-6 font-medium"
         >
           <MapPin className="size-5 mr-2" />
           내위치 기준 탐색
