@@ -13,6 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { FaqDialog } from "@/components/faq-dialog";
 import { signOut } from "@/app/actions/owner";
 import { useAuthState } from "@/lib/hooks/use-auth-state";
@@ -24,6 +25,8 @@ interface MenuItem {
   icon: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
+  /** 사장님 전용 등 메뉴 옆 표시 뱃지 */
+  badge?: string;
 }
 
 export function MenuSheet() {
@@ -77,6 +80,7 @@ export function MenuSheet() {
                 icon: <Store className="size-5" />,
                 onClick: () => router.push("/owner/shops"),
                 disabled: shopCount === null,
+                badge: "사장님만",
               },
             ]
           : []),
@@ -85,6 +89,7 @@ export function MenuSheet() {
           label: "업장 추가",
           icon: <PlusCircle className="size-5" />,
           onClick: () => router.push("/owner/register"),
+          badge: "사장님만",
         },
         {
           id: "mypage",
@@ -144,7 +149,12 @@ export function MenuSheet() {
                 className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-left hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 {item.icon}
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium flex-1 min-w-0">{item.label}</span>
+                {item.badge && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    {item.badge}
+                  </Badge>
+                )}
               </button>
             ))}
           </nav>
